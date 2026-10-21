@@ -61,8 +61,9 @@ Folders are added as features are built (`Api/` and most of `Application/` come 
 
 - **ASP.NET Core Identity** with cookie authentication, behind our own `/api/auth` endpoints (register, login, logout, me). `MapIdentityApi` was considered and rejected: it has no logout, its register can't take name or phone, and it doesn't assign roles. The SPA and API share an origin through the Vite proxy, so cookies work with no token handling in the frontend.
 - **Roles:** `Admin`, `Mechanic`, `Customer`. Staff endpoints live under `/api/admin` and require a staff role; customer endpoints under `/api` allow anonymous (guest) access.
-- **The first admin is seeded on startup** from configuration (user secrets or environment variables, never committed).
+- **The roles and the first admin are seeded on startup** (`IdentitySeeder`). The admin comes from configuration (`Admin:Email`, `Admin:Password`) in user secrets (`just admin <email> <password>`) or environment variables, never committed. Without it, the app starts with a warning and no admin.
 - Customers never need an account; see [requirements](requirements.md#customers-and-accounts).
+- Passwords: at least 8 characters with Identity's default complexity rules. 5 wrong passwords lock the account for 15 minutes. The cookie is `HttpOnly` and `SameSite=Strict`, which also protects the cookie-authenticated API against cross-site request forgery in current browsers.
 
 ## Domain model
 

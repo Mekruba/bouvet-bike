@@ -48,6 +48,17 @@ cd frontend && npm run dev
 
 The Vite dev server proxies `/api/*` to the backend on port 5080.
 
+### Admin login
+
+Staff pages need a login. The first admin is created on startup from configuration, which is kept in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) rather than in the repo:
+
+```sh
+just admin admin@bouvetbike.local 'Choose-A-Passw0rd'   # at least 8 characters, with upper and lower case, a digit and a symbol
+just reset-db                                          # only if the database already exists
+```
+
+Then log in with `POST /api/session`. The admin can create mechanics and other admins with `POST /api/admin/staff`.
+
 The SQLite database (`backend/BouvetBike/bouvetbike.db`) is created on first start. After changing the data model, run `just reset-db`.
 
 ## Test

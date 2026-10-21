@@ -29,3 +29,8 @@ test:
 # Delete the local SQLite database (schema is recreated on next start)
 reset-db:
     rm -f backend/BouvetBike/bouvetbike.db*
+
+# Set the admin account seeded on startup (stored in user secrets, not in the repo), then restart the backend
+admin email password:
+    cd backend && dotnet user-secrets set --project BouvetBike "Admin:Email" "{{email}}"
+    cd backend && dotnet user-secrets set --project BouvetBike "Admin:Password" "{{password}}"

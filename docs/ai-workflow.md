@@ -53,3 +53,12 @@
   - One compared sorted results with an unsorted expectation.
 
   Pattern so far: the AI's test code fails more often than its production code, on test plumbing (shared data, equality, ordering) rather than on the behaviour being specified. Every red-after-implementation run is therefore checked to see whether the code or the test is wrong before anything is changed.
+- **Remaining domains, one step at a time** (Claude Code, autonomously): I asked the AI to do the rest of the domains with the same workflow and to stop if it was unsure. It ran four red → green cycles: customer notes and my orders, staff search/get/patch/delete, status changes and price override, then accounts/sessions/staff. Each step got its own commits.
+  - Decisions it took without stopping, because they follow conventions already agreed, and recorded in `docs/architecture.md`:
+    - REST shapes for auth (`POST /api/users`, `POST`/`DELETE /api/session`)
+    - 201 vs 200 for the first and later price-override `PUT`s (RFC 9110 "MUST")
+    - a `WWW-Authenticate` challenge on every 401 (RFC 9110)
+    - exact-match search for email and phone
+    - invalid status transitions as 400, per our `POST` rule. It flagged 409 as a defensible alternative.
+  - Every post-implementation failure was again a test-plumbing fault (record equality on lists, twice), not a product bug.
+  - Test infrastructure changed so requests without the test header use the real cookie sign-in, which lets the auth tests run the real flow. The full staff flow (login, search, status change, price override, logout) was then checked against the running app with `curl`.
