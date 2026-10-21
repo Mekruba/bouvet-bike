@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using BouvetBike.Catalog.Api;
-using BouvetBike.Orders.Application;
+using BouvetBike.Discounts.Api;
+using BouvetBike.Orders.Api;
 using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Persistence;
 using BouvetBike.Users.Api;
@@ -15,10 +16,11 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddValidation();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddOptions<CapacityOptions>().BindConfiguration(CapacityOptions.Section).ValidateDataAnnotations().ValidateOnStart();
 
 builder.Services.AddUsersModule();
 builder.Services.AddCatalogModule();
+builder.Services.AddDiscountsModule();
+builder.Services.AddOrdersModule();
 
 // Resolved lazily so tests can override ConnectionStrings:Default.
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
@@ -48,5 +50,6 @@ using (var scope = app.Services.CreateScope())
 var api = app.MapGroup("/api");
 api.MapHealthEndpoints();
 api.MapCatalogEndpoints();
+api.MapOrdersEndpoints();
 
 app.Run();

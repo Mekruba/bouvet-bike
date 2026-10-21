@@ -12,6 +12,14 @@ internal static class OrderTestHelpers
 {
     public const string OrdersUrl = "/api/orders";
 
+    private static int _dayOffset = 100;
+
+    /// <summary>
+    /// A due date no other test uses, for tests that aren't about capacity: tests in a class share a
+    /// database, and more than 5 orders on one day would make the next one fail as fully booked.
+    /// </summary>
+    public static DateOnly FreshDay() => TestData.Today.AddDays(Interlocked.Increment(ref _dayOffset));
+
     public static PlaceOrderRequest NewOrder(
         Guid serviceTypeId,
         DateOnly dueDate,

@@ -50,7 +50,7 @@ public class PriceQuoteApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         await _anonymous.GetAsync($"{Url}?serviceTypeId={serviceId}&discountCode=ONCEONLY").AssertStatus(HttpStatusCode.OK);
         await _anonymous.GetAsync($"{Url}?serviceTypeId={serviceId}&discountCode=ONCEONLY").AssertStatus(HttpStatusCode.OK);
 
-        var order = await _anonymous.PlaceOrder(NewOrder(serviceId, Today.AddDays(1), discountCode: "ONCEONLY"));
+        var order = await _anonymous.PlaceOrder(NewOrder(serviceId, FreshDay(), discountCode: "ONCEONLY"));
         Assert.Equal("ONCEONLY", order.Price.DiscountCode);
     }
 

@@ -26,7 +26,8 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     public async Task Place_AsGuest_Returns201_WithConfirmation()
     {
         var serviceId = await _anonymous.ServiceTypeId("Chain replacement");
-        var request = NewOrder(serviceId, Today.AddDays(2), email: "Kari@Example.COM", phone: "912 34 567", notes: "Squeaky chain");
+        var dueDate = FreshDay();
+        var request = NewOrder(serviceId, dueDate, email: "Kari@Example.COM", phone: "912 34 567", notes: "Squeaky chain");
 
         var response = await _anonymous.PostJsonAsync(OrdersUrl, request);
         var order = await response.ReadAs<CustomerOrderResponse>(HttpStatusCode.Created);
@@ -35,15 +36,16 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(OrderStatus.New, order.Status);
         Assert.Equal(new ContactResponse("Kari Nordmann", "kari@example.com", "+4791234567"), order.Contact);
         Assert.Equal(("Trek", "Domane SL5", "Chain replacement"), (order.BikeBrand, order.BikeModel, order.ServiceName));
-        Assert.Equal((Today.AddDays(2), "Squeaky chain", true), (order.DueDate, order.Notes, order.CanEditNotes));
+        Assert.Equal((dueDate, "Squeaky chain", true), (order.DueDate, order.Notes, order.CanEditNotes));
         Assert.Equal(new MoneyResponse(790, "NOK"), order.Price.Total);
-        Assert.Equal($"/api/orders/{order.Reference}", response.Headers.Location?.OriginalString);
+        // RFC 9110 allows an absolute or relative Location; what matters is that it points at the new order.
+        Assert.EndsWith($"/api/orders/{order.Reference}", response.Headers.Location?.OriginalString);
     }
 
     [Fact]
     public async Task Place_Location_ReturnsTheOrder_WithContactHeader()
     {
-        var response = await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(await _anonymous.ServiceTypeId(), Today.AddDays(2)));
+        var response = await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
         var placed = await response.ReadAs<CustomerOrderResponse>(HttpStatusCode.Created);
 
         var fetched = await _anonymous.GetAsync(response.Headers.Location!.OriginalString, (OrderAccess.ContactHeader, "kari@example.com"))
@@ -57,7 +59,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         await factory.SeedDiscountCode("SPRING10", DiscountType.Percentage, 10);
 
-        var order = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId("Chain replacement"), Today.AddDays(3), discountCode: "spring10"));
+        var order = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId("Chain replacement"), FreshDay(), discountCode: "spring10"));
 
         Assert.Equal(("SPRING10", 79m, 711m), (order.Price.DiscountCode, order.Price.DiscountAmount.Amount, order.Price.Total.Amount));
     }
@@ -67,9 +69,9 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         await factory.SeedDiscountCode("SINGLE", DiscountType.Percentage, 10, maxUses: 1);
         var serviceId = await _anonymous.ServiceTypeId();
-        await _anonymous.PlaceOrder(NewOrder(serviceId, Today.AddDays(3), discountCode: "SINGLE"));
+        await _anonymous.PlaceOrder(NewOrder(serviceId, FreshDay(), discountCode: "SINGLE"));
 
-        await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(serviceId, Today.AddDays(3), discountCode: "SINGLE"))
+        await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(serviceId, FreshDay(), discountCode: "SINGLE"))
             .AssertProblem(HttpStatusCode.BadRequest);
     }
 
@@ -154,6 +156,18 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal($"{full.AddDays(2):yyyy-MM-dd}", problem.GetProperty("nextAvailableDate").GetString());
     }
 
+    [Fact]
+    public async Task Timestamps_AreUtc_AfterARoundTripThroughTheDatabase()
+    {
+        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
+
+        var json = await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}", (OrderAccess.ContactHeader, "kari@example.com"))
+            .AssertStatus(HttpStatusCode.OK);
+
+        // SQLite doesn't store DateTime.Kind; without the trailing Z a browser would read this as local time.
+        Assert.Equal("2026-03-02T10:00:00Z", json.GetProperty("createdAt").GetString());
+    }
+
     // ---- getting by reference ----
 
     [Theory]
@@ -163,7 +177,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [InlineData("91234567")]
     public async Task Get_AsGuest_WithEmailOrPhoneInAnyFormat(string contact)
     {
-        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), Today.AddDays(4)));
+        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
 
         var fetched = await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}", (OrderAccess.ContactHeader, contact))
             .ReadAs<CustomerOrderResponse>();
@@ -174,7 +188,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task Get_ReferenceIsCaseInsensitive_AndPrefixOptional()
     {
-        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), Today.AddDays(4)));
+        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
         var shortForm = placed.Reference[OrderReference.Prefix.Length..].ToLowerInvariant();
 
         await _anonymous.GetAsync($"{OrdersUrl}/{shortForm}", (OrderAccess.ContactHeader, "kari@example.com"))
@@ -184,7 +198,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task Get_WithWrongContact_Is404()
     {
-        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), Today.AddDays(4)));
+        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
 
         await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}", (OrderAccess.ContactHeader, "someone@else.com"))
             .AssertProblem(HttpStatusCode.NotFound);
@@ -193,7 +207,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task Get_WithoutContact_Is404()
     {
-        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), Today.AddDays(4)));
+        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
 
         await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}").AssertProblem(HttpStatusCode.NotFound);
     }
@@ -210,7 +224,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task Place_AsCustomer_OwnsTheOrder_NoContactNeeded()
     {
-        var placed = await _customer.PlaceOrder(NewOrder(await _customer.ServiceTypeId(), Today.AddDays(5), email: "other@example.com"));
+        var placed = await _customer.PlaceOrder(NewOrder(await _customer.ServiceTypeId(), FreshDay(), email: "other@example.com"));
 
         await _customer.GetAsync($"{OrdersUrl}/{placed.Reference}").AssertStatus(HttpStatusCode.OK);
     }
@@ -218,7 +232,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task Get_SomeoneElsesOrder_AsCustomer_Is404()
     {
-        var guestOrder = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), Today.AddDays(5)));
+        var guestOrder = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
 
         await _customer.GetAsync($"{OrdersUrl}/{guestOrder.Reference}").AssertProblem(HttpStatusCode.NotFound);
     }

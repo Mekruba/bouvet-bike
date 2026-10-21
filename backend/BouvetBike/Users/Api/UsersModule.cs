@@ -1,3 +1,4 @@
+using BouvetBike.Shared.Contracts;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 
@@ -27,6 +28,9 @@ public static class UsersModule
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.Staff, policy => policy.RequireRole(Roles.Admin, Roles.Mechanic))
             .AddPolicy(Policies.Admin, policy => policy.RequireRole(Roles.Admin));
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, HttpCurrentUser>();
 
         return services;
     }
