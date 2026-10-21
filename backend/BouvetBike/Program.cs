@@ -34,6 +34,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

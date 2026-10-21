@@ -14,6 +14,9 @@ internal static class OrderMappings
     public static ContactResponse ToContactResponse(this ContactInfo contact) =>
         new(contact.Name, contact.Email.Value, contact.Phone.Value);
 
+    public static CustomerOrderSummaryResponse ToSummaryResponse(this MaintenanceOrder order) =>
+        new(order.Reference.Value, order.Status, order.BikeBrand, order.ServiceName, order.DueDate, MoneyResponse.From(order.Total));
+
     public static OrderPriceResponse ToPriceResponse(this MaintenanceOrder order) => new(
         MoneyResponse.From(order.ServicePrice),
         order.Discount?.Code,

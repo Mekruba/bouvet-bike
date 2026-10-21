@@ -54,13 +54,29 @@ public sealed class CustomerOrderService(
         return ToResponse(order);
     }
 
-    public async Task<CustomerOrderResponse> GetAsync(string reference, string? contact, CancellationToken ct) =>
-        ToResponse(await FindAccessibleAsync(reference, contact, ct));
+    public async Task<CustomerOrderResponse> GetAsync(string reference, CancellationToken ct) =>
+        ToResponse(await FindAsync(reference, ct));
 
-    public async Task<CustomerOrderResponse> PatchAsync(
-        string reference, string? contact, JsonPatchDocument<CustomerOrderPatch> patch, CancellationToken ct)
+    public async Task<IReadOnlyList<CustomerOrderSummaryResponse>> FindByContactAsync(string contact, CancellationToken ct)
     {
-        var order = await FindAccessibleAsync(reference, contact, ct);
+        var orders = db.MaintenanceOrders.IgnoreAutoIncludes().AsNoTracking();
+        if (contact.Contains('@'))
+        {
+            var email = Email.Create(contact);
+            orders = orders.Where(o => o.Contact.Email == email);
+        }
+        else
+        {
+            var phone = TryPhone(contact) ?? throw new DomainException($"'{contact}' is not a valid email address or phone number.");
+            orders = orders.Where(o => o.Contact.Phone == phone);
+        }
+
+        return (await orders.OrderByDescending(o => o.CreatedAt).ToListAsync(ct)).Select(o => o.ToSummaryResponse()).ToList();
+    }
+
+    public async Task<CustomerOrderResponse> PatchAsync(string reference, JsonPatchDocument<CustomerOrderPatch> patch, CancellationToken ct)
+    {
+        var order = await FindAsync(reference, ct);
         var model = new CustomerOrderPatch { Notes = order.CustomerNotes };
 
         patch.ApplyAndValidate(model);
@@ -86,46 +102,27 @@ public sealed class CustomerOrderService(
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync(ct);
 
-        return orders
-            .Select(o => new CustomerOrderSummaryResponse(
-                o.Reference.Value, o.Status, o.BikeBrand, o.ServiceName, o.DueDate, MoneyResponse.From(o.Total)))
-            .ToList();
+        return orders.Select(o => o.ToSummaryResponse()).ToList();
     }
 
-    /// <summary>
-    /// The order, if the caller owns it or knows its email or phone. Anything else is "not found",
-    /// so a guessed reference doesn't reveal whether the order exists.
-    /// </summary>
-    private async Task<MaintenanceOrder> FindAccessibleAsync(string reference, string? contact, CancellationToken ct)
+    /// <summary>The order with this reference. The reference is random, so knowing it is the access check.</summary>
+    private async Task<MaintenanceOrder> FindAsync(string reference, CancellationToken ct)
     {
         var notFound = new NotFoundException($"Order '{reference}' was not found.");
-        if (!OrderReference.TryParse(reference, out var parsed))
-        {
-            throw notFound;
-        }
-
-        var order = await db.MaintenanceOrders.SingleOrDefaultAsync(o => o.Reference == parsed, ct) ?? throw notFound;
-        var isOwner = currentUser.Id is { } userId && order.CustomerId == userId;
-        return isOwner || MatchesContact(order.Contact, contact) ? order : throw notFound;
+        return OrderReference.TryParse(reference, out var parsed)
+            ? await db.MaintenanceOrders.SingleOrDefaultAsync(o => o.Reference == parsed, ct) ?? throw notFound
+            : throw notFound;
     }
 
-    /// <summary>Compares normalized values, so "+47 912 34 567" matches "91234567" and email case is ignored.</summary>
-    private static bool MatchesContact(ContactInfo orderContact, string? given)
+    private static PhoneNumber? TryPhone(string value)
     {
-        if (string.IsNullOrWhiteSpace(given))
-        {
-            return false;
-        }
-
         try
         {
-            return given.Contains('@')
-                ? Email.Create(given) == orderContact.Email
-                : PhoneNumber.Create(given) == orderContact.Phone;
+            return PhoneNumber.Create(value);
         }
         catch (DomainException)
         {
-            return false; // not a valid email or phone, so it can't match
+            return null;
         }
     }
 

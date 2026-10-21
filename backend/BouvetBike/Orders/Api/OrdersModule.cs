@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using BouvetBike.Orders.Application;
 using BouvetBike.Orders.Contracts;
 using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Contracts;
 using BouvetBike.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +19,7 @@ public static class OrdersModule
         services.AddScoped<ICapacityService, CapacityService>();
         services.AddScoped<ICustomerOrderService, CustomerOrderService>();
         services.AddScoped<IAdminOrderService, AdminOrderService>();
+        services.AddOrderLookupRateLimit();
         return services;
     }
 
@@ -27,9 +30,12 @@ public static class OrdersModule
 
         var orders = api.MapGroup("/orders").WithTags("Orders");
         orders.MapPost("/", Place);
-        orders.MapGet("/", GetMine).RequireAuthorization(Policies.Customer);
-        orders.MapGet("/{reference}", GetByReference).WithName(nameof(GetByReference));
-        orders.MapPatch("/{reference}", Patch).Accepts<JsonPatchDocument<CustomerOrderPatch>>(JsonPatch.MediaType);
+        // Anyone with a reference, email or phone can see orders, so these lookups are rate-limited.
+        orders.MapGet("/", List).RequireRateLimiting(OrderLookupRateLimit.Policy);
+        orders.MapGet("/{reference}", GetByReference).WithName(nameof(GetByReference)).RequireRateLimiting(OrderLookupRateLimit.Policy);
+        orders.MapPatch("/{reference}", Patch)
+            .Accepts<JsonPatchDocument<CustomerOrderPatch>>(JsonPatch.MediaType)
+            .RequireRateLimiting(OrderLookupRateLimit.Policy);
 
         // The staff view of the same orders: separate routes, staff-only.
         var admin = api.MapGroup("/admin/orders").WithTags("Admin orders").RequireAuthorization(Policies.Staff);
@@ -64,21 +70,37 @@ public static class OrdersModule
         return TypedResults.CreatedAtRoute(order, nameof(GetByReference), new { reference = order.Reference });
     }
 
-    private static async Task<Ok<IReadOnlyList<CustomerOrderSummaryResponse>>> GetMine(ICustomerOrderService orders, CancellationToken ct) =>
-        TypedResults.Ok(await orders.GetMyOrdersAsync(ct));
-
-    /// <param name="contact">Email or phone on the order; guests only.</param>
-    private static async Task<Ok<CustomerOrderResponse>> GetByReference(
-        string reference,
+    /// <summary>
+    /// With the <c>Order-Contact</c> header: every order with that email or phone (guest lookup).
+    /// Without it: the logged-in customer's own orders.
+    /// </summary>
+    private static async Task<Results<Ok<IReadOnlyList<CustomerOrderSummaryResponse>>, ChallengeHttpResult, ForbidHttpResult>> List(
         [FromHeader(Name = OrderAccess.ContactHeader)] string? contact,
+        ClaimsPrincipal user,
+        IAuthorizationService authorization,
         ICustomerOrderService orders,
-        CancellationToken ct) =>
-        TypedResults.Ok(await orders.GetAsync(reference, contact, ct));
+        CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(contact))
+        {
+            return TypedResults.Ok(await orders.FindByContactAsync(contact.Trim(), ct));
+        }
 
-    /// <param name="contact">Email or phone on the order; guests only.</param>
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            return TypedResults.Challenge();
+        }
+
+        return (await authorization.AuthorizeAsync(user, Policies.Customer)).Succeeded
+            ? TypedResults.Ok(await orders.GetMyOrdersAsync(ct))
+            : TypedResults.Forbid();
+    }
+
+    private static async Task<Ok<CustomerOrderResponse>> GetByReference(string reference, ICustomerOrderService orders, CancellationToken ct) =>
+        TypedResults.Ok(await orders.GetAsync(reference, ct));
+
     private static async Task<Results<Ok<CustomerOrderResponse>, ProblemHttpResult>> Patch(
         string reference,
-        [FromHeader(Name = OrderAccess.ContactHeader)] string? contact,
         JsonPatchDocument<CustomerOrderPatch> patch,
         ICustomerOrderService orders,
         CancellationToken ct)
@@ -88,7 +110,7 @@ public static class OrdersModule
             return problem;
         }
 
-        return TypedResults.Ok(await orders.PatchAsync(reference, contact, patch, ct));
+        return TypedResults.Ok(await orders.PatchAsync(reference, patch, ct));
     }
 
     private static async Task<Ok<PagedResponse<AdminOrderSummaryResponse>>> Search(
