@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
+using BouvetBike.Catalog.Api;
 using BouvetBike.Orders.Application;
 using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Persistence;
+using BouvetBike.Users.Api;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -14,6 +16,9 @@ builder.Services.AddValidation();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOptions<CapacityOptions>().BindConfiguration(CapacityOptions.Section).ValidateDataAnnotations().ValidateOnStart();
+
+builder.Services.AddUsersModule();
+builder.Services.AddCatalogModule();
 
 // Resolved lazily so tests can override ConnectionStrings:Default.
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
@@ -42,5 +47,6 @@ using (var scope = app.Services.CreateScope())
 
 var api = app.MapGroup("/api");
 api.MapHealthEndpoints();
+api.MapCatalogEndpoints();
 
 app.Run();
