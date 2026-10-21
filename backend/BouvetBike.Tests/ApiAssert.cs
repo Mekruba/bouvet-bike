@@ -17,6 +17,9 @@ public static class ApiAssert
     public static Task<HttpResponseMessage> PostJsonAsync<T>(this HttpClient client, string url, T body) =>
         client.PostAsJsonAsync(url, body, Json);
 
+    public static Task<HttpResponseMessage> PutJsonAsync<T>(this HttpClient client, string url, T body) =>
+        client.PutAsJsonAsync(url, body, Json);
+
     /// <summary>GET with extra request headers, e.g. the order contact header.</summary>
     public static Task<HttpResponseMessage> GetAsync(this HttpClient client, string url, params (string Name, string Value)[] headers)
     {

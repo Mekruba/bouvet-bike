@@ -22,9 +22,21 @@ public interface IAdminOrderService
     /// <exception cref="Shared.Domain.DomainException">The transition isn't allowed from the current status.</exception>
     Task<StatusChangeResponse> AddStatusChangeAsync(Guid id, ChangeStatusRequest request, CancellationToken ct);
 
+    /// <summary>The order's status history, oldest first.</summary>
     Task<IReadOnlyList<StatusChangeResponse>> GetStatusChangesAsync(Guid id, CancellationToken ct);
 
-    Task<AdminOrderResponse> SetPriceOverrideAsync(Guid id, OverridePriceRequest request, CancellationToken ct);
+    /// <exception cref="Shared.Application.NotFoundException">Unknown order or status change.</exception>
+    Task<StatusChangeResponse> GetStatusChangeAsync(Guid id, Guid changeId, CancellationToken ct);
 
+    /// <exception cref="Shared.Application.NotFoundException">Unknown order, or no override set.</exception>
+    Task<PriceOverrideResponse> GetPriceOverrideAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Sets or replaces the final price, by the current staff user.</summary>
+    /// <returns>The override, and whether it was created (no override before) rather than replaced (RFC 9110: 201 vs 200).</returns>
+    /// <exception cref="Shared.Domain.DomainException">The order is cancelled.</exception>
+    Task<(PriceOverrideResponse Override, bool Created)> SetPriceOverrideAsync(Guid id, OverridePriceRequest request, CancellationToken ct);
+
+    /// <summary>Goes back to the calculated price. Idempotent: no override is not an error.</summary>
+    /// <exception cref="Shared.Domain.DomainException">The order is cancelled.</exception>
     Task ClearPriceOverrideAsync(Guid id, CancellationToken ct);
 }

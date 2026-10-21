@@ -132,7 +132,13 @@ public sealed class AdminOrderService(
     public Task<IReadOnlyList<StatusChangeResponse>> GetStatusChangesAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException("Not yet test-driven.");
 
-    public Task<AdminOrderResponse> SetPriceOverrideAsync(Guid id, OverridePriceRequest request, CancellationToken ct) =>
+    public Task<StatusChangeResponse> GetStatusChangeAsync(Guid id, Guid changeId, CancellationToken ct) =>
+        throw new NotImplementedException("Not yet test-driven.");
+
+    public Task<PriceOverrideResponse> GetPriceOverrideAsync(Guid id, CancellationToken ct) =>
+        throw new NotImplementedException("Not yet test-driven.");
+
+    public Task<(PriceOverrideResponse Override, bool Created)> SetPriceOverrideAsync(Guid id, OverridePriceRequest request, CancellationToken ct) =>
         throw new NotImplementedException("Not yet test-driven.");
 
     public Task ClearPriceOverrideAsync(Guid id, CancellationToken ct) =>
