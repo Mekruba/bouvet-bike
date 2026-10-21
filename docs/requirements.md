@@ -40,9 +40,12 @@ Optional change request: estimated price shown before submit; admin can override
 
 ### Order lookup
 
-- **Lookup requires the order reference plus the email or phone on the order**, sent in the `Order-Contact` request header (`GET /api/orders/{reference}`). Read literally, "reference, email, or phone" would let anyone who knows a phone number see that person's orders and edit their notes. Requiring two factors works like an airline booking lookup (booking reference + last name).
-- **References are short but not guessable:** 8 characters from an alphabet without look-alike characters (no `0/O`, `1/I/L`), e.g. `BB-7K3QX9MD`. They are never sequential, since they act as half of the lookup credential.
-- The lookup endpoint is rate-limited to slow down guessing.
+- **A guest finds orders with *either* the reference *or* the email or phone number**, as the assignment says ("a simple reference, email, or phone number"):
+  - **The reference alone opens the order** (`GET /api/orders/{reference}`) and lets the customer change notes. It works like a private link: it's random, so knowing it means you were given it.
+  - **Email or phone alone lists every order with that contact**, any status, newest first (`GET /api/orders` with the `Order-Contact` header, so personal data stays out of URLs). Each result links to its order.
+- **Trade-off, accepted on purpose:** anyone who knows someone's email or phone number can see that person's bookings and notes. An earlier version required reference *and* contact (like an airline booking lookup). It was changed to match the assignment's wording and keep lookup simple for customers. In a real product this would be closed with a one-time link or code sent to the email or phone, which is out of scope here (no email/SMS integration).
+- **References are short but not guessable:** 8 characters from an alphabet without look-alike characters (no `0/O`, `1/I/L`), e.g. `BB-7K3QX9MD`. They are never sequential, since the reference alone gives access.
+- **Lookups are rate-limited per client** (30 a minute by default, `RateLimiting:OrderLookups:PermitsPerMinute`): over the limit gives 429 with `Retry-After`. This slows down guessing references and harvesting orders by contact.
 
 ### Bikes
 

@@ -212,9 +212,10 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `GET /api/capacity?from=&days=` | anyone | `ICapacityService.GetAsync`: bookings per day, default today + 14 days, max 60 |
 | `GET /api/price-quotes?serviceTypeId=&discountCode=` | anyone | `ICustomerOrderService.QuoteAsync`: never uses up the code |
 | `POST /api/orders` | anyone | `PlaceAsync` → 201, `Location: /api/orders/{reference}`; full date → 400 with `nextAvailableDate` |
-| `GET /api/orders` | Customer | `GetMyOrdersAsync` |
-| `GET /api/orders/{reference}` | owner, or guest with `Order-Contact` header | `GetAsync` |
-| `PATCH /api/orders/{reference}` | same | `PatchAsync`: JSON Patch, `/notes` only, while New |
+| `GET /api/orders` + `Order-Contact: <email or phone>` | anyone (rate-limited) | `FindByContactAsync`: every order with that contact, newest first |
+| `GET /api/orders` | Customer | `GetMyOrdersAsync`: orders linked to the account |
+| `GET /api/orders/{reference}` | anyone with the reference (rate-limited) | `GetAsync` |
+| `PATCH /api/orders/{reference}` | anyone with the reference (rate-limited) | `PatchAsync`: JSON Patch, `/notes` only, while New |
 
 **Orders, staff side** (implemented test-first: `AdminOrderQueryApiTests`, `AdminOrderUpdateApiTests`, `AdminOrderLifecycleApiTests`):
 
@@ -245,7 +246,7 @@ The session is a resource without its own URI (it lives in the cookie), so loggi
 "Staff" means Admin or Mechanic. Deleting orders and overriding prices are Admin-only.
 
 **Why these shapes:**
-- **Guests prove access with an `Order-Contact` request header** (email or phone on the order), not a query parameter or a `POST /lookup`: the order stays a plain `GET` resource, and personal data stays out of URLs, browser history and logs. No `X-` prefix (RFC 6648). A wrong or missing contact gives 404, so a guessed reference doesn't reveal that an order exists.
+- **The reference is the key to one order; the email or phone finds the references.** The email or phone goes in an `Order-Contact` request header, not a query parameter or a `POST /lookup`: the order list stays a plain `GET`, and personal data stays out of URLs, browser history and logs. No `X-` prefix (RFC 6648). See [requirements](requirements.md#order-lookup) for the trade-off, and the rate limit that goes with it.
 - **A quote is a `GET`**: it's safe and idempotent, a calculation, not a new resource.
 - **Status changes are a sub-collection (`POST …/status-changes`)**, not a patched field: each change is a history entry with its own author, time and reason.
 - **The price override is a singleton sub-resource (`PUT`/`DELETE`)**: Admin-only, so it can't share the staff `PATCH`.
@@ -276,6 +277,7 @@ A rule that depends on *other* resources (a fully booked due date, a used-up dis
 | 401 / 403 | Not logged in / wrong role | 401 carries `WWW-Authenticate` |
 | 404 | `NotFoundException`, including an order the caller may not see | |
 | 405 | The resource doesn't support the method | |
+| 429 | Too many order lookups from one client | `Retry-After` header |
 | 409 | `StateConflictException`: the resource's current state forbids the operation (in `POST` and `PATCH` alike) | |
 | 409 | `ConflictException`: duplicate, or a failed JSON Patch `test` | |
 | 415 | Wrong `Content-Type` (e.g. `application/json` for a JSON Patch) | |
