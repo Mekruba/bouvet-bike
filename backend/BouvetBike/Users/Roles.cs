@@ -7,4 +7,5 @@ public static class Roles
     public const string Customer = "Customer";
 
     public static readonly IReadOnlyList<string> All = [Admin, Mechanic, Customer];
+    public static readonly IReadOnlyList<string> Staff = [Admin, Mechanic];
 }

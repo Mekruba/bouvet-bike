@@ -5,7 +5,8 @@ namespace BouvetBike.Tests;
 
 /// <summary>
 /// Single project, so module and layer boundaries are enforced by namespace instead of project references.
-/// Each module: Api, Contracts, Application, Domain, Persistence.
+/// Each module: Api, Contracts (DTOs + service interfaces: the module's public surface), Application (implementations),
+/// Domain, Persistence. Shared is the host: it may wire modules together (AppDbContext, seeding).
 /// </summary>
 public class ArchitectureTests
 {
@@ -27,6 +28,39 @@ public class ArchitectureTests
 
         AssertNoDependency(AllTypes.ResideInNamespaceMatching(@"^BouvetBike\.\w+\.Domain"), forbidden);
     }
+
+    [Fact]
+    public void Contracts_AreFreeOfApplicationPersistenceAndFrameworks() =>
+        AssertNoDependency(
+            AllTypes.ResideInNamespaceMatching(@"^BouvetBike\.\w+\.Contracts"),
+            [
+                "Microsoft.EntityFrameworkCore",
+                "Microsoft.AspNetCore",
+                .. Modules.SelectMany(module => new[] { "Api", "Application", "Persistence" }.Select(layer => $"BouvetBike.{module}.{layer}")),
+            ]);
+
+    [Fact]
+    public void Application_DoesNotDependOnApiOrHttp() =>
+        AssertNoDependency(
+            AllTypes.ResideInNamespaceMatching(@"^BouvetBike\.\w+\.Application"),
+            [
+                "Microsoft.AspNetCore.Http",
+                .. Modules.Select(module => $"BouvetBike.{module}.Api"),
+            ]);
+
+    /// <summary>A module may use another module's Contracts and Domain, never its implementation.</summary>
+    [Theory]
+    [InlineData("Orders")]
+    [InlineData("Catalog")]
+    [InlineData("Discounts")]
+    [InlineData("Users")]
+    public void Modules_UseOnlyContractsAndDomainOfOtherModules(string module) =>
+        AssertNoDependency(
+            AllTypes.ResideInNamespace($"BouvetBike.{module}"),
+            Modules
+                .Where(other => other != module && other != "Shared")
+                .SelectMany(other => new[] { "Api", "Application", "Persistence" }.Select(layer => $"BouvetBike.{other}.{layer}"))
+                .ToArray());
 
     [Fact]
     public void SharedDomain_DoesNotDependOnAnyModule() =>

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using BouvetBike.Orders.Application;
 using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -7,9 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
-builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddValidation();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddOptions<CapacityOptions>().BindConfiguration(CapacityOptions.Section).ValidateDataAnnotations().ValidateOnStart();
 
 // Resolved lazily so tests can override ConnectionStrings:Default.
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>

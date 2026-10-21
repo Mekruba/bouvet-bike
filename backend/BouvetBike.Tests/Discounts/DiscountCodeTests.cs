@@ -31,6 +31,18 @@ public class DiscountCodeTests
     }
 
     [Fact]
+    public void Preview_ChecksCode_WithoutCountingAUse()
+    {
+        var code = DiscountCode.Create("ONCE", DiscountType.Percentage, 10, maxUses: 1);
+
+        var applied = code.Preview(_clock);
+
+        Assert.Equal(("ONCE", 0), (applied.Code, code.TimesUsed));
+        code.Redeem(_clock);
+        Assert.Throws<DomainException>(() => code.Preview(_clock));
+    }
+
+    [Fact]
     public void Redeem_RejectsOutsideValidity()
     {
         var expired = DiscountCode.Create("OLD", DiscountType.Percentage, 10, validTo: Today.AddDays(-1));

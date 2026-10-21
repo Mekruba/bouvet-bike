@@ -68,8 +68,8 @@ public sealed partial class DiscountCode : AggregateRoot
         MaxUses = maxUses;
     }
 
-    /// <summary>Checks the code can be used today, counts the use, and returns the terms to store on the order.</summary>
-    public AppliedDiscount Redeem(TimeProvider clock)
+    /// <summary>Checks the code can be used today, without counting a use. For price quotes.</summary>
+    public AppliedDiscount Preview(TimeProvider clock)
     {
         var today = DateOnly.FromDateTime(clock.GetLocalNow().Date);
         if (!IsActive || today < ValidFrom || today > ValidTo)
@@ -82,8 +82,15 @@ public sealed partial class DiscountCode : AggregateRoot
             throw new DomainException($"Discount code '{Code}' has been used up.");
         }
 
-        TimesUsed++;
         return new AppliedDiscount(this);
+    }
+
+    /// <summary>Checks the code can be used today, counts the use, and returns the terms to store on the order.</summary>
+    public AppliedDiscount Redeem(TimeProvider clock)
+    {
+        var applied = Preview(clock);
+        TimesUsed++;
+        return applied;
     }
 
     public void Deactivate() => IsActive = false;
