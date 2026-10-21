@@ -29,6 +29,25 @@ public class ApiExceptionHandlerTests
     }
 
     [Fact]
+    public async Task Conflict_Becomes409()
+    {
+        var (status, _) = await Handle(new ConflictException("Name taken."));
+
+        Assert.Equal(409, status);
+    }
+
+    [Fact]
+    public async Task Unprocessable_Becomes422_WithFieldErrors()
+    {
+        var errors = new Dictionary<string, string[]> { ["price"] = ["Must be positive."] };
+
+        var (status, body) = await Handle(new UnprocessableException("Invalid patch.", errors));
+
+        Assert.Equal(422, status);
+        Assert.Equal("Must be positive.", body.GetProperty("errors").GetProperty("price")[0].GetString());
+    }
+
+    [Fact]
     public async Task OtherExceptions_AreNotHandled()
     {
         var handled = await new ApiExceptionHandler(ProblemDetailsService())

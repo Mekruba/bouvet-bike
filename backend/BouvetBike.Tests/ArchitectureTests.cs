@@ -35,7 +35,11 @@ public class ArchitectureTests
             AllTypes.ResideInNamespaceMatching(@"^BouvetBike\.\w+\.Contracts"),
             [
                 "Microsoft.EntityFrameworkCore",
-                "Microsoft.AspNetCore",
+                // JSON Patch (Microsoft.AspNetCore.JsonPatch) is allowed: the patch document is part of the API contract.
+                "Microsoft.AspNetCore.Http",
+                "Microsoft.AspNetCore.Routing",
+                "Microsoft.AspNetCore.Mvc",
+                "Microsoft.AspNetCore.Identity",
                 .. Modules.SelectMany(module => new[] { "Api", "Application", "Persistence" }.Select(layer => $"BouvetBike.{module}.{layer}")),
             ]);
 
