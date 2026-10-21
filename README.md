@@ -48,6 +48,10 @@ cd frontend && npm run dev
 
 The Vite dev server proxies `/api/*` to the backend on port 5080.
 
+### Demo data
+
+In Development (`just dev`), two discount codes are seeded for trying the price quote and discount features: `WELCOME10` (10 %) and `SPRING100` (100 NOK off, 50 uses). Other environments, including the tests, get no demo data.
+
 ### Admin login
 
 Staff pages need a login. The first admin is created on startup from configuration, which is kept in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) rather than in the repo:
