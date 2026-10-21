@@ -39,3 +39,16 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 - New domain entity → add `IEntityTypeConfiguration<T>`; max lengths come from constants on the domain type.
 - SQLite stores decimals as TEXT: don't `Sum`/`OrderBy` money in LINQ-to-SQL; compute in memory.
 - No migrations: after model changes run `just reset-db`.
+
+## API conventions (REST + RFC 6902)
+
+- Plural kebab-case resources, no verbs in URLs. `POST` → 201 + `Location`; `PATCH` → 200 + resource; `DELETE` → 204; unsupported method → 405.
+- Updates are `PATCH` with JSON Patch (`application/json-patch+json`, `Microsoft.AspNetCore.JsonPatch.SystemTextJson`). Apply the patch to a `…Patch` model in `Contracts/`, validate it, then call the domain. Never patch an entity directly.
+- PATCH errors per RFC 5789: 400 malformed, 415 wrong media type, 409 failed `test` op (`ConflictException`), 422 bad path or invalid result (`UnprocessableException` with field errors). The full table is in `docs/architecture.md`.
+
+## Testing (test-driven)
+
+- Write failing **API tests** first (`HttpClient` against `ApiFactory`, real SQLite), commit them red, then implement. Domain unit tests cover rules on the aggregates. No mocks of services or the DbContext.
+- `factory.CreateClient(Roles.Admin)` signs in as a role via `TestAuthHandler` (header `X-Test-Role`); `CreateClient(role: null)` is anonymous. `TestUsers` has the fixed user IDs.
+- `ApiAssert` helpers: `PatchJsonAsync`, `AssertStatus`, `AssertProblem` (checks `application/problem+json`), `AssertFieldError`, `ReadAs<T>`.
+- Tests in a class share one database, so create the data you change (unique names) and don't assume exact counts.

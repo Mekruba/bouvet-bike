@@ -149,11 +149,31 @@ Defined in `OrderStatusTransitions`; anything else throws `DomainException`. `Wa
 
 Contract-first: request/response records live in each module's `Contracts/`, together with the use-case interfaces; implementations live in `Application/`. Endpoints map a route to one service method and nothing else. Live docs: Scalar at http://localhost:5080/scalar/v1.
 
-### Endpoints (planned)
+### REST conventions
+
+- **Resources are plural, kebab-case nouns** (`/api/service-types`, `/api/orders`). No verbs in URLs.
+- `GET` → 200 · `POST` (create) → **201 with a `Location` header** and the created resource · `PATCH` → 200 with the updated resource · `DELETE` → 204. A method a resource doesn't support → 405.
+- **Updates are `PATCH` with a JSON Patch document (RFC 6902)**, `Content-Type: application/json-patch+json`. The patch is applied to a *patch model* (e.g. `ServiceTypePatch`) whose camelCase properties are the patch paths. The model is then validated and passed to the domain, so a patch can never bypass a business rule. Patches are atomic: if any operation fails, nothing is saved.
+- **`PATCH` status codes follow RFC 5789 §2.2:** 400 malformed patch document · 415 wrong content type · **409 a `test` operation failed** (use `test` for optimistic concurrency) or the result conflicts with another resource · **422 unknown or read-only path, or the patched resource would be invalid**, with field errors.
+- 401 when not logged in, 403 when logged in with the wrong role.
+
+### Endpoints
+
+**Catalog** (implemented test-first, see `CatalogApiTests`):
 
 | Route | Access | Service method |
 |---|---|---|
-| `GET /api/services` | anyone | `ICatalogService.GetActiveAsync` |
+| `GET /api/service-types` | anyone | `ICatalogService.GetAllAsync` (active only, sorted by name) |
+| `GET /api/service-types?includeInactive=true` | staff | `GetAllAsync` |
+| `GET /api/service-types/{id}` | anyone | `GetByIdAsync` |
+| `POST /api/service-types` | Admin | `CreateAsync` → 201; 409 on a duplicate name (case-insensitive) |
+| `PATCH /api/service-types/{id}` | Admin | `PatchAsync`; paths `/name`, `/description`, `/price`, `/estimatedMinutes`, `/isActive` |
+| `DELETE /api/service-types/{id}` | | 405: orders reference service types, so retire one with `PATCH /isActive false` |
+
+**Orders and users (planned; to be reworked into REST resources when implemented):**
+
+| Route | Access | Service method |
+|---|---|---|
 | `GET /api/orders/capacity?from=&days=` | anyone | `ICapacityService.GetAsync` |
 | `POST /api/orders/quote` | anyone | `ICustomerOrderService.QuoteAsync` |
 | `POST /api/orders` | anyone | `ICustomerOrderService.PlaceAsync` (201) |
@@ -185,5 +205,8 @@ All errors are RFC 7807 ProblemDetails:
 | 400 | Business rule violated (`DomainException`) | anything in `DomainException.Details`, e.g. `nextAvailableDate` when a due date is full |
 | 401 / 403 | Not logged in / wrong role | |
 | 404 | `NotFoundException`, including an order the caller may not see | |
+| 409 | `ConflictException`: duplicate, or a failed JSON Patch `test` | |
+| 415 | Wrong `Content-Type` (e.g. `application/json` for a JSON Patch) | |
+| 422 | `UnprocessableException`: a JSON Patch that can't be applied, or that would leave the resource invalid | `errors`: field → messages |
 
 Enums are sent as strings (`"InProgress"`), dates as `yyyy-MM-dd`.

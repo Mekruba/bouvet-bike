@@ -63,7 +63,7 @@ Optional change request: estimated price shown before submit; admin can override
 ### Services and pricing
 
 - **One service per order,** as in the spec. A customer with two jobs places two orders.
-- Service types are a catalog (seeded with Wheel adjustment, Chain replacement, Brake maintenance) with a base price and an estimated duration, so prices and services can change without a deploy.
+- Service types are a catalog (seeded with Wheel adjustment, Chain replacement, Brake maintenance) with a base price and an estimated duration, so prices and services can change without a deploy. Service type names are unique (case-insensitive). Service types are never deleted, since orders reference them; they are deactivated, which hides them from customers.
 - **The service name and price are copied onto the order when it is placed.** Later catalog changes do not alter existing orders.
 - Discount codes are percentage or fixed amount, with an optional validity period and usage limit. The code's terms are stored on the order, so the discount follows the price if staff change the service.
 - One discount code per order. A fixed discount never makes the total negative.
