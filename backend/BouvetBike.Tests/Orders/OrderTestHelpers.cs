@@ -54,10 +54,13 @@ internal static class OrderTestHelpers
         });
 
     /// <summary>Cancels an order directly in the database (the admin status API comes later).</summary>
-    public static Task CancelOrder(this ApiFactory factory, string reference) =>
+    public static Task CancelOrder(this ApiFactory factory, string reference) => factory.SetStatus(reference, OrderStatus.Cancelled);
+
+    /// <summary>Moves an order to <paramref name="status"/> directly in the database (the admin status API comes later).</summary>
+    public static Task SetStatus(this ApiFactory factory, string reference, OrderStatus status) =>
         factory.WithDbAsync(async db =>
         {
             var order = await db.MaintenanceOrders.SingleAsync(o => o.Reference == OrderReference.Parse(reference));
-            order.ChangeStatus(OrderStatus.Cancelled, null, factory.Clock);
+            order.ChangeStatus(status, null, factory.Clock);
         });
 }
