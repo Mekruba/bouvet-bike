@@ -53,6 +53,17 @@ public class DiscountCodeTests
     }
 
     [Fact]
+    public void MaxUses_CannotBeSetBelowTimesUsed()
+    {
+        var code = DiscountCode.Create("TWICE", DiscountType.Percentage, 10);
+        code.Redeem(_clock);
+        code.Redeem(_clock);
+
+        Assert.Throws<DomainException>(() => code.UpdateTerms(DiscountType.Percentage, 10, null, null, maxUses: 1));
+        code.UpdateTerms(DiscountType.Percentage, 10, null, null, maxUses: 2); // used up, but consistent
+    }
+
+    [Fact]
     public void Redeem_RejectsInactiveCode()
     {
         var code = DiscountCode.Create("OFF", DiscountType.Percentage, 10);
