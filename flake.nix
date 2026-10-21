@@ -27,6 +27,8 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
+              just # task runner, see justfile
+
               # backend
               dotnet-sdk
               dotnet-ef # EF Core migrations
