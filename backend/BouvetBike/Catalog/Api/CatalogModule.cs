@@ -19,7 +19,7 @@ public static class CatalogModule
         var serviceTypes = api.MapGroup("/service-types").WithTags("Catalog");
 
         serviceTypes.MapGet("/", GetAll);
-        serviceTypes.MapGet("/{id:guid}", GetById).WithName(nameof(GetById));
+        serviceTypes.MapGet("/{id:guid}", GetServiceType).WithName(nameof(GetServiceType));
         serviceTypes.MapPost("/", Create).RequireAuthorization(Policies.Admin);
         serviceTypes.MapPatch("/{id:guid}", Patch)
             .RequireAuthorization(Policies.Admin)
@@ -40,14 +40,14 @@ public static class CatalogModule
         return TypedResults.Ok(await catalog.GetAllAsync(includeInactive == true, ct));
     }
 
-    private static async Task<Ok<ServiceTypeResponse>> GetById(Guid id, ICatalogService catalog, CancellationToken ct) =>
+    private static async Task<Ok<ServiceTypeResponse>> GetServiceType(Guid id, ICatalogService catalog, CancellationToken ct) =>
         TypedResults.Ok(await catalog.GetByIdAsync(id, ct));
 
     private static async Task<CreatedAtRoute<ServiceTypeResponse>> Create(
         CreateServiceTypeRequest request, ICatalogService catalog, CancellationToken ct)
     {
         var created = await catalog.CreateAsync(request, ct);
-        return TypedResults.CreatedAtRoute(created, nameof(GetById), new { id = created.Id });
+        return TypedResults.CreatedAtRoute(created, nameof(GetServiceType), new { id = created.Id });
     }
 
     private static async Task<Results<Ok<ServiceTypeResponse>, ProblemHttpResult>> Patch(

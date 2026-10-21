@@ -59,5 +59,6 @@ api.MapHealthEndpoints();
 api.MapCatalogEndpoints();
 api.MapOrdersEndpoints();
 api.MapUsersEndpoints();
+api.MapDiscountsEndpoints();
 
 app.Run();

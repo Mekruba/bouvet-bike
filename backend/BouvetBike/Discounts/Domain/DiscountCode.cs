@@ -61,6 +61,11 @@ public sealed partial class DiscountCode : AggregateRoot
             throw new DomainException("Max uses must be at least 1.");
         }
 
+        if (maxUses < TimesUsed)
+        {
+            throw new DomainException($"Max uses can't be lower than the {TimesUsed} times the code has already been used.");
+        }
+
         Type = type;
         Value = value;
         ValidFrom = validFrom;
