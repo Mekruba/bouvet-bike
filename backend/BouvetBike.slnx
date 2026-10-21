@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BouvetBike.Tests/BouvetBike.Tests.csproj" />
+  <Project Path="BouvetBike/BouvetBike.csproj" />
+</Solution>
