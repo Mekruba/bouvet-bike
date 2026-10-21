@@ -5,6 +5,7 @@ using BouvetBike.Orders.Api;
 using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Persistence;
 using BouvetBike.Users.Api;
+using BouvetBike.Users.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -45,11 +46,13 @@ if (app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+    await IdentitySeeder.SeedAsync(scope.ServiceProvider);
 }
 
 var api = app.MapGroup("/api");
 api.MapHealthEndpoints();
 api.MapCatalogEndpoints();
 api.MapOrdersEndpoints();
+api.MapUsersEndpoints();
 
 app.Run();

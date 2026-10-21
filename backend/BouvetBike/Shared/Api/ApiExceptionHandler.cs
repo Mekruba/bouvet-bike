@@ -8,7 +8,7 @@ namespace BouvetBike.Shared.Api;
 /// <summary>
 /// Maps expected exceptions to ProblemDetails:
 /// <see cref="NotFoundException"/> → 404, <see cref="ConflictException"/> → 409,
-/// <see cref="UnprocessableException"/> → 422 with field errors,
+/// <see cref="UnprocessableException"/> → 422 with field errors, <see cref="RequestValidationException"/> → 400 with field errors,
 /// <see cref="DomainException"/> → 400 with its <see cref="DomainException.Details"/> as extra fields,
 /// and a malformed request (<see cref="BadHttpRequestException"/>) → its own status code.
 /// Anything else falls through to the default 500 handler.
@@ -21,6 +21,12 @@ public class ApiExceptionHandler(IProblemDetailsService problemDetails) : IExcep
         {
             NotFoundException => Problem(StatusCodes.Status404NotFound, "Not found", exception),
             ConflictException => Problem(StatusCodes.Status409Conflict, "Conflict", exception),
+            RequestValidationException invalid => new HttpValidationProblemDetails(invalid.Errors.ToDictionary())
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred.",
+                Detail = exception.Message,
+            },
             UnprocessableException unprocessable => WithExtensions(
                 new HttpValidationProblemDetails(unprocessable.Errors.ToDictionary())
                 {

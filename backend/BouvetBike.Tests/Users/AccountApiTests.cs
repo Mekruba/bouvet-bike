@@ -32,7 +32,7 @@ public class AccountApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(("Kari Nordmann", email, "+4791234567", false), (user.Name, user.Email, user.Phone, user.IsStaff));
         Assert.Equal([Roles.Customer], user.Roles);
         Assert.EndsWith(MeUrl, response.Headers.Location?.OriginalString);
-        Assert.Equal(user, await client.GetAsync(MeUrl).ReadAs<CurrentUserResponse>());
+        ApiAssert.AssertSameJson(user, await client.GetAsync(MeUrl).ReadAs<CurrentUserResponse>());
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class AccountApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var user = await client.PostJsonAsync(SessionUrl, new LoginRequest(email, Password)).ReadAs<CurrentUserResponse>();
 
         Assert.Equal(email, user.Email);
-        Assert.Equal(user, await client.GetAsync(MeUrl).ReadAs<CurrentUserResponse>());
+        ApiAssert.AssertSameJson(user, await client.GetAsync(MeUrl).ReadAs<CurrentUserResponse>());
     }
 
     [Fact]
@@ -171,7 +171,8 @@ public class AccountApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var admin = await client.PostJsonAsync(SessionUrl, new LoginRequest(ApiFactory.SeededAdminEmail, ApiFactory.SeededAdminPassword))
             .ReadAs<CurrentUserResponse>();
 
-        Assert.Equal(([Roles.Admin], true), (admin.Roles, admin.IsStaff));
+        Assert.Equal([Roles.Admin], admin.Roles);
+        Assert.True(admin.IsStaff);
         await client.GetAsync("/api/admin/orders").AssertStatus(HttpStatusCode.OK);
     }
 
