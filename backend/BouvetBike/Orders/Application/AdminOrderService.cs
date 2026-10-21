@@ -111,9 +111,9 @@ public sealed class AdminOrderService(
                 }
             }
         }
-        catch (DomainException ex)
+        catch (DomainException ex) when (ex is not StateConflictException)
         {
-            // RFC 5789: a patch that would break a business rule is 422, not 400.
+            // RFC 5789: a patch that would break a business rule is 422, not 400. A state conflict passes through as 409.
             throw UnprocessableException.From(ex);
         }
 

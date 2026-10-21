@@ -116,7 +116,7 @@ public sealed class MaintenanceOrder : AggregateRoot
     {
         if (!OrderStatusTransitions.CanTransition(Status, newStatus))
         {
-            throw new DomainException($"Cannot change status from {Status} to {newStatus}.");
+            throw new StateConflictException($"Cannot change status from {Status} to {newStatus}.");
         }
 
         var now = clock.GetUtcNow().UtcDateTime;
@@ -130,7 +130,7 @@ public sealed class MaintenanceOrder : AggregateRoot
     {
         if (Status != OrderStatus.New)
         {
-            throw new DomainException("Notes can only be changed before the repair has started.");
+            throw new StateConflictException("Notes can only be changed before the repair has started.");
         }
 
         CustomerNotes = Guard.Optional(notes, "Notes", NotesMaxLength);
@@ -150,7 +150,7 @@ public sealed class MaintenanceOrder : AggregateRoot
         EnsureNotClosed();
         if (Discount is not null)
         {
-            throw new DomainException($"Discount code '{Discount.Code}' is already applied.");
+            throw new StateConflictException($"Discount code '{Discount.Code}' is already applied.");
         }
 
         Discount = discount;
@@ -206,7 +206,7 @@ public sealed class MaintenanceOrder : AggregateRoot
     {
         if (Status.IsTerminal())
         {
-            throw new DomainException($"A {Status.ToString().ToLowerInvariant()} order cannot be changed.");
+            throw new StateConflictException($"A {Status.ToString().ToLowerInvariant()} order cannot be changed.");
         }
     }
 
@@ -214,7 +214,7 @@ public sealed class MaintenanceOrder : AggregateRoot
     {
         if (Status == OrderStatus.Cancelled)
         {
-            throw new DomainException("A cancelled order cannot be changed.");
+            throw new StateConflictException("A cancelled order cannot be changed.");
         }
     }
 

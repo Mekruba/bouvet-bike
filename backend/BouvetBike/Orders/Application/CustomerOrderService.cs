@@ -68,9 +68,9 @@ public sealed class CustomerOrderService(
         {
             order.UpdateCustomerNotes(model.Notes, clock);
         }
-        catch (DomainException ex)
+        catch (DomainException ex) when (ex is not StateConflictException)
         {
-            // RFC 5789: a patch that can't be applied in the resource's current state is 422, not 400.
+            // RFC 5789: a patch that can't be applied in the resource's current state is 422, not 400. A state conflict passes through as 409.
             throw UnprocessableException.From(ex);
         }
 

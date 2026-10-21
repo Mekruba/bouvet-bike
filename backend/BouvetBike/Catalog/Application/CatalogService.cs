@@ -53,9 +53,9 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         {
             service.Update(model.Name, model.Description, new Money(model.Price), TimeSpan.FromMinutes(model.EstimatedMinutes));
         }
-        catch (DomainException ex)
+        catch (DomainException ex) when (ex is not StateConflictException)
         {
-            // RFC 5789: a patch that would leave the resource invalid is 422, not 400.
+            // RFC 5789: a patch that would leave the resource invalid is 422, not 400. A state conflict passes through as 409.
             throw UnprocessableException.From(ex);
         }
 

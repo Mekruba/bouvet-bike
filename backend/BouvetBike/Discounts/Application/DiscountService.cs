@@ -55,9 +55,9 @@ public sealed class DiscountService(AppDbContext db, TimeProvider clock) : IDisc
         {
             code.UpdateTerms(model.Type, model.Value, model.ValidFrom, model.ValidTo, model.MaxUses);
         }
-        catch (DomainException ex)
+        catch (DomainException ex) when (ex is not StateConflictException)
         {
-            // RFC 5789: a patch that would leave the resource invalid is 422, not 400.
+            // RFC 5789: a patch that would leave the resource invalid is 422, not 400. A state conflict passes through as 409.
             throw UnprocessableException.From(ex);
         }
 
