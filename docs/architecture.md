@@ -191,8 +191,10 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `GET /api/admin/orders/{id}` | staff | `GetAsync` |
 | `PATCH /api/admin/orders/{id}` | staff | `PatchAsync`: details, service, due date, `/internalNotes`, `/discountCode` |
 | `DELETE /api/admin/orders/{id}` | Admin | `DeleteAsync` → 204 |
-| `GET` · `POST /api/admin/orders/{id}/status-changes` | staff | `GetStatusChangesAsync`, `AddStatusChangeAsync` → 201 |
-| `PUT` · `DELETE /api/admin/orders/{id}/price-override` | Admin | `SetPriceOverrideAsync`, `ClearPriceOverrideAsync` → 204 |
+| `GET` · `POST /api/admin/orders/{id}/status-changes` | staff | `GetStatusChangesAsync`, `AddStatusChangeAsync` → 201 + `Location`; invalid transition → 400 |
+| `GET /api/admin/orders/{id}/status-changes/{changeId}` | staff | `GetStatusChangeAsync` |
+| `GET /api/admin/orders/{id}/price-override` | staff | `GetPriceOverrideAsync`; 404 when none is set |
+| `PUT` · `DELETE /api/admin/orders/{id}/price-override` | Admin | `SetPriceOverrideAsync` → **201 when created, 200 when replaced** (RFC 9110); `ClearPriceOverrideAsync` → 204, also when none is set (idempotent) |
 
 **Users:** `POST /api/auth/register` · `login` · `logout`, `GET /api/auth/me` (anyone); `GET` · `POST /api/admin/staff` (Admin). `IAccountService`.
 
