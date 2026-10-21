@@ -64,3 +64,10 @@
   - Test infrastructure changed so requests without the test header use the real cookie sign-in, which lets the auth tests run the real flow. The full staff flow (login, search, status change, price override, logout) was then checked against the running app with `curl`.
 - **Discount codes: demo data and admin API** (Claude Code): I chose to do both options the AI offered: demo codes (`WELCOME10`, `SPRING100`) seeded only in Development, with a test that guards against them reaching other environments, and an Admin API with the same REST shape as the catalog.
   - The first green run instead failed 225 tests: the app wouldn't start, because two modules named an endpoint `GetById` and endpoint names must be unique. One readable startup error explained every failure. The handlers were renamed after their resource, and the rule went into `CLAUDE.md`.
+- **400 vs 409 for refused operations** (discussion, my decision): the AI flagged that invalid status transitions returned 400 under our "broken rule in a `POST` = 400" convention, and that 409 was defensible. We discussed it before changing anything. I framed it as: how should we answer when the request is correct but the operation isn't allowed? The AI split that into *why* it's refused:
+  - input breaks a rule → 400/422
+  - who you are → 403
+  - this resource never supports the method → 405
+  - **this resource's current state forbids it → 409**
+
+  We kept rules about *other* resources (full due date, used-up code) as 400, since reloading the order wouldn't help and the response says what to change. I chose this option ("B") over keeping one rule ("A") or making all rule failures 409 ("C"). It was implemented test-first: a `StateConflictException` subtype in the domain (still HTTP-agnostic), 18 tests turned red for the right reason, then green.

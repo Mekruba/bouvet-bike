@@ -32,7 +32,7 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 ## Domain conventions
 
 - Private setters; create through static factories, change through methods that enforce the rules. Validate everything before mutating.
-- Rule violation → `throw new DomainException("…")` (user-facing message).
+- Rule violation → `throw new DomainException("…")` (user-facing message, 400/422). If the aggregate's *current state* is the reason, and another state would allow it, throw `StateConflictException` instead (409). A rule about *other* resources (capacity, discount code) stays a plain `DomainException`.
 - Time via injected `TimeProvider` (never `DateTime.Now`); timestamps are UTC `DateTime`. Tests use `FakeTimeProvider` from `TestData.Clock()`.
 - Value objects: records with `private init` setters and a private parameterless constructor (EF Core needs it to materialize complex types).
 - Keep the model simple: add an entity or table only when a requirement needs it. Prefer fields and value objects on the aggregate.
