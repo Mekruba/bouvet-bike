@@ -187,6 +187,7 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | Route | Access | Service method |
 |---|---|---|
 | `GET /api/admin/orders?search=&status=&serviceTypeId=&dueFrom=&dueTo=&sort=&page=` | staff | `IAdminOrderService.SearchAsync` |
+
 | `GET /api/admin/orders/{id}` | staff | `GetAsync` |
 | `PATCH /api/admin/orders/{id}` | staff | `PatchAsync`: details, service, due date, `/internalNotes`, `/discountCode` |
 | `DELETE /api/admin/orders/{id}` | Admin | `DeleteAsync` → 204 |
@@ -204,6 +205,8 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 - **The price override is a singleton sub-resource (`PUT`/`DELETE`)**: Admin-only, so it can't share the staff `PATCH`.
 - **`/api/admin/…` is the staff view** of the same orders: the routing-based separation the assignment asks for.
 - In a `POST`, a broken business rule is 400. Only `PATCH` uses 422 (RFC 5789).
+- **Admin search** matches the reference (exact, any case, prefix optional), email (exact, ignoring case), phone (exact, any format), and customer name or bike brand (substring, ignoring case). Email and phone are value objects stored as whole values, so a partial match would need extra search columns; exact matching keeps the model simple and covers how staff look people up.
+- **A staff `PATCH` applies only what it changes**: internal notes can still be edited on a completed order, while details can't. Moving the due date re-checks capacity (the order doesn't count against itself); a full date is 422 with `nextAvailableDate`.
 
 ### Errors
 
