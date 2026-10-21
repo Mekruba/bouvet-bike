@@ -1,6 +1,9 @@
 using BouvetBike.Orders.Application;
 using BouvetBike.Orders.Contracts;
+using BouvetBike.Shared.Api;
+using BouvetBike.Users;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BouvetBike.Orders.Api;
@@ -22,7 +25,9 @@ public static class OrdersModule
 
         var orders = api.MapGroup("/orders").WithTags("Orders");
         orders.MapPost("/", Place);
+        orders.MapGet("/", GetMine).RequireAuthorization(Policies.Customer);
         orders.MapGet("/{reference}", GetByReference).WithName(nameof(GetByReference));
+        orders.MapPatch("/{reference}", Patch).Accepts<JsonPatchDocument<CustomerOrderPatch>>(JsonPatch.MediaType);
 
         return api;
     }
@@ -42,6 +47,9 @@ public static class OrdersModule
         return TypedResults.CreatedAtRoute(order, nameof(GetByReference), new { reference = order.Reference });
     }
 
+    private static async Task<Ok<IReadOnlyList<CustomerOrderSummaryResponse>>> GetMine(ICustomerOrderService orders, CancellationToken ct) =>
+        TypedResults.Ok(await orders.GetMyOrdersAsync(ct));
+
     /// <param name="contact">Email or phone on the order; guests only.</param>
     private static async Task<Ok<CustomerOrderResponse>> GetByReference(
         string reference,
@@ -49,4 +57,20 @@ public static class OrdersModule
         ICustomerOrderService orders,
         CancellationToken ct) =>
         TypedResults.Ok(await orders.GetAsync(reference, contact, ct));
+
+    /// <param name="contact">Email or phone on the order; guests only.</param>
+    private static async Task<Results<Ok<CustomerOrderResponse>, ProblemHttpResult>> Patch(
+        string reference,
+        [FromHeader(Name = OrderAccess.ContactHeader)] string? contact,
+        JsonPatchDocument<CustomerOrderPatch> patch,
+        ICustomerOrderService orders,
+        CancellationToken ct)
+    {
+        if (JsonPatch.FindMalformedOperation(patch) is { } problem)
+        {
+            return problem;
+        }
+
+        return TypedResults.Ok(await orders.PatchAsync(reference, contact, patch, ct));
+    }
 }

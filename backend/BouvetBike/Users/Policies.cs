@@ -7,4 +7,7 @@ public static class Policies
     public const string Staff = "Staff";
 
     public const string Admin = "Admin";
+
+    /// <summary>A logged-in customer (not staff).</summary>
+    public const string Customer = "Customer";
 }

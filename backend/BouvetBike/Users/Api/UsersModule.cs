@@ -27,7 +27,8 @@ public static class UsersModule
 
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.Staff, policy => policy.RequireRole(Roles.Admin, Roles.Mechanic))
-            .AddPolicy(Policies.Admin, policy => policy.RequireRole(Roles.Admin));
+            .AddPolicy(Policies.Admin, policy => policy.RequireRole(Roles.Admin))
+            .AddPolicy(Policies.Customer, policy => policy.RequireRole(Roles.Customer));
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpCurrentUser>();

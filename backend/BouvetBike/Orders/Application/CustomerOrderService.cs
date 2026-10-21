@@ -58,11 +58,40 @@ public sealed class CustomerOrderService(
     public async Task<CustomerOrderResponse> GetAsync(string reference, string? contact, CancellationToken ct) =>
         ToResponse(await FindAccessibleAsync(reference, contact, ct));
 
-    public Task<CustomerOrderResponse> PatchAsync(string reference, string? contact, JsonPatchDocument<CustomerOrderPatch> patch, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public async Task<CustomerOrderResponse> PatchAsync(
+        string reference, string? contact, JsonPatchDocument<CustomerOrderPatch> patch, CancellationToken ct)
+    {
+        var order = await FindAccessibleAsync(reference, contact, ct);
+        var model = new CustomerOrderPatch { Notes = order.CustomerNotes };
 
-    public Task<IReadOnlyList<CustomerOrderSummaryResponse>> GetMyOrdersAsync(CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+        patch.ApplyAndValidate(model);
+        try
+        {
+            order.UpdateCustomerNotes(model.Notes, clock);
+        }
+        catch (DomainException ex)
+        {
+            // RFC 5789: a patch that can't be applied in the resource's current state is 422, not 400.
+            throw new UnprocessableException(ex.Message);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return ToResponse(order);
+    }
+
+    public async Task<IReadOnlyList<CustomerOrderSummaryResponse>> GetMyOrdersAsync(CancellationToken ct)
+    {
+        var customerId = currentUser.Id ?? throw new InvalidOperationException("Requires a logged-in customer.");
+        var orders = await db.MaintenanceOrders
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(ct);
+
+        return orders
+            .Select(o => new CustomerOrderSummaryResponse(
+                o.Reference.Value, o.Status, o.BikeBrand, o.ServiceName, o.DueDate, MoneyResponse.From(o.Total)))
+            .ToList();
+    }
 
     /// <summary>
     /// The order, if the caller owns it or knows its email or phone. Anything else is "not found",
