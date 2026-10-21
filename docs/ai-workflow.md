@@ -71,3 +71,9 @@
   - **this resource's current state forbids it → 409**
 
   We kept rules about *other* resources (full due date, used-up code) as 400, since reloading the order wouldn't help and the response says what to change. I chose this option ("B") over keeping one rule ("A") or making all rule failures 409 ("C"). It was implemented test-first: a `StateConflictException` subtype in the domain (still HTTP-agnostic), 18 tests turned red for the right reason, then green.
+- **Frontend** (Claude Code): I asked for the whole site in light mode, with centralized CSS, reused components, and inspiration from common web UIs, and said frontend tests weren't needed. The AI built a token-based stylesheet, ~15 reusable components and 11 pages against the existing API. It kept two smoke tests so `just test` still covers the frontend.
+  - Verified visually, not just by compiling: the AI ran the real backend and frontend and drove a headless browser (Playwright) through every page, booking, staff login and order actions included, taking screenshots. That found three problems the typechecker couldn't:
+    - an empty booking showed a raw "failed to read JSON" error, because `""` was sent for an unchosen service and date (now `null`, so the API returns field errors)
+    - the mobile header wrapped badly
+    - the logo touched the screen edge on mobile
+  - Corrected in review: the AI's first UI copy contained business claims nobody gave it ("parts are quoted separately", "you pay when you pick up the bike"). These were replaced with statements that are true of the system.

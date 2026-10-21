@@ -20,7 +20,7 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
   - `Shared/`: `Domain/` (Entity, AggregateRoot, DomainException, Guard, Money, Email, PhoneNumber), `Contracts/` (`MoneyResponse`, `PagedResponse<T>`, `ICurrentUser`), `Application/` (`NotFoundException`), `Persistence/` (the single `AppDbContext`, converters, seeding), `Api/` (`ApiExceptionHandler`, health).
   - Module dependencies point one way: `Orders` → `Catalog`, `Discounts`. Other modules may use only a module's `Contracts` and `Domain`, never its `Application`, `Persistence` or `Api`. `Shared.Domain` depends on no module. All of this is enforced by `ArchitectureTests`; add new modules to its `Modules` list.
 - `backend/BouvetBike.Tests`: xUnit, with folders mirroring the modules. Domain unit tests, `PersistenceTests` (EF round-trips), API integration tests via `ApiFactory` (WebApplicationFactory + temp SQLite file per fixture).
-- `frontend/src`: `pages/` per route, `api/client.ts` fetch wrapper (`api<T>()`, throws `ApiError` carrying ProblemDetails).
+- `frontend/src`: `api/` (types mirroring the contracts, `endpoints.ts` with one function per endpoint, `useApi`), `auth/`, `components/` (reusable UI), `lib/` (`useForm`, `diffPatch`, formatting), `pages/` (+ `pages/admin/`), `styles/`. See "Frontend" in `docs/architecture.md`.
 
 ## Conventions and gotchas
 
@@ -54,3 +54,11 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 - `ApiAssert` helpers: `PatchJsonAsync`, `AssertStatus`, `AssertProblem` (checks `application/problem+json`), `AssertFieldError`, `ReadAs<T>`, and `AssertSameJson` for responses containing lists (record equality compares lists by reference).
 - Tests in a class share one database, so create the data you change (unique names) and don't assume exact counts. For orders, use `OrderTestHelpers.FreshDay()` for the due date unless the test is about capacity; more than 5 orders on one date make the next one fail as fully booked.
 - An interface method without tests yet throws `NotImplementedException("Not yet test-driven.")`. Write its tests before implementing it.
+
+## Frontend conventions
+
+- Light mode only. All CSS lives in `src/styles/` (tokens → base → layout → components). Use the CSS variables and existing classes; no per-component CSS files, no inline styles.
+- Build forms from `Field` components + `useForm` (`form.bind('name')`, `form.submit(...)` maps API field errors). Lists use `DataTable`; confirmations use `ConfirmDialog`.
+- Call the API only through `api/endpoints.ts`; add new endpoints there with types in `api/types.ts`. Edits send `diffPatch(original, edited, fields, optional)`.
+- Never put a guest's email or phone in a URL; use `rememberContact`/`recallContact` and the `Order-Contact` header.
+- Send `null`, not `""`, for empty optional or not-yet-chosen values (the API can't parse `""` as a Guid or date).

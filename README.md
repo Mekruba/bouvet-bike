@@ -65,6 +65,18 @@ Then log in with `POST /api/session`. The admin can create mechanics and other a
 
 The SQLite database (`backend/BouvetBike/bouvetbike.db`) is created on first start. After changing the data model, run `just reset-db`.
 
+## Using the app
+
+**Customers** (no account needed):
+- **Book a service** (`/`): choose a service and a due date (days show how many slots are left), describe the bike, optionally apply a discount code to see the price, then confirm.
+- **Find my order** (`/orders/find`): the order reference plus the email or phone used when booking. Shows status and price, and notes can be changed until the repair starts.
+- With an account (`/register`): orders are linked to it and listed under **My orders**.
+
+**Staff** (`/admin`, log in first, see [Admin login](#admin-login)):
+- **Orders:** today's counts and the next 14 days' capacity (click a day to filter), search, filters, sorting and paging. An order's page has details, status actions with history, internal notes, discount code, and (Admin) the final price and delete.
+- **Services:** the catalog. Admins add, edit and retire services.
+- **Discount codes** and **Staff:** Admin only.
+
 ## Test
 
 ```sh

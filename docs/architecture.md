@@ -53,7 +53,7 @@ Folders are added as features are built (`Api/` and most of `Application/` come 
 | Validation | .NET 10 built-in minimal API validation (`AddValidation()` + DataAnnotations) | No extra library; errors come back as RFC 7807 `ValidationProblemDetails` |
 | Errors | `AddProblemDetails()` + `UseExceptionHandler()` | Consistent JSON error shape that the frontend `ApiError` understands |
 | API docs | Built-in OpenAPI + Scalar UI | Generated from code, so it stays in sync |
-| Frontend | React + TypeScript via Vite, React Router | Customer (`/`) and admin (`/admin`) as separate routes |
+| Frontend | React + TypeScript via Vite, React Router; no UI or data library | Customer portal at `/`, staff area at `/admin`. Small, typed API layer and a handful of reusable components instead of a component library: fewer dependencies, full control over the look. See [Frontend](#frontend) |
 | Dev wiring | Vite proxy for `/api` | Same origin in dev, so no CORS config |
 | Tests | xUnit + `WebApplicationFactory` against a temp SQLite file; NetArchTest; Vitest + Testing Library | Integration tests exercise the real HTTP pipeline and database |
 
@@ -146,6 +146,29 @@ Defined in `OrderStatusTransitions`; anything else throws `DomainException`. `Wa
 - **Timestamps are UTC everywhere.** A convention marks every `DateTime` read from the database as UTC: SQLite doesn't store `DateTime.Kind`, and an unmarked value would be sent without its `Z`, so clients would read it as local time.
 - The status history is its own table, cascade-deleted with the order and auto-included when it's loaded.
 - **SQLite caveats:** decimals are stored as TEXT, so money can't be summed or sorted in SQL (totals are computed in memory). `DateTimeOffset` can't be ordered in SQL, which is why timestamps are UTC `DateTime`.
+
+## Frontend
+
+```
+frontend/src/
+├── api/         types.ts (mirrors the backend contracts), client.ts (fetch, ProblemDetails → ApiError),
+│                endpoints.ts (one typed function per endpoint), useApi.ts (load, reload, replace)
+├── auth/        AuthProvider (current user from GET /api/users/me), useAuth, RequireRole (route guard)
+├── components/  Button, Card, Field (TextField, SelectField, TextAreaField, Checkbox), Alert, DataTable,
+│                Pagination, Dialog / ConfirmDialog, StatusBadge, CapacityStrip, PriceSummary, Layout
+├── lib/         format.ts (money, dates, labels), useForm.ts (form state + API errors), jsonPatch.ts (diffPatch),
+│                orderAccess.ts (guest contact in sessionStorage)
+├── pages/       customer pages; pages/admin/ for the staff area
+└── styles/      tokens.css, base.css, layout.css, components.css: the only CSS, imported once
+```
+
+- **Styling is centralized.** Colours, type, spacing and shape are CSS variables in `tokens.css` (light mode only, colours from the Bouvet logo). Components use class names from `components.css`; there are no per-component stylesheets or inline styles, apart from the capacity meter's computed width.
+- **Reuse:** every form is built from the same `Field` components and the `useForm` hook. That hook binds inputs and turns a 400/422 response into errors next to the right fields. Every list is a `DataTable` (columns, optional sorting, clickable rows, loading and empty states). The `CapacityStrip` is both the customer's date picker and the staff capacity overview.
+- **Edits send JSON Patch with only what changed.** `diffPatch` compares the original and edited values and produces `replace`/`remove` operations, matching the API's RFC 6902 contract and its "apply only what changed" rule.
+- **Guest access:** after booking or a successful lookup, the email or phone is kept in `sessionStorage` (this tab only) and sent in the `Order-Contact` header, never in the URL.
+- **Auth:** the session is the HttpOnly cookie; the frontend only asks who is logged in. `RequireRole` hides pages the user can't use, but the API enforces every rule itself.
+- **Staff filters live in the URL** (`?status=New&sort=CustomerName`), so the back button, reloads and shared links keep them.
+- **Tests:** two smoke tests (the app renders; the staff area sends anonymous users to login). Behaviour is covered by the backend API tests; the UI was checked by scripted browser runs with screenshots.
 
 ## API
 
