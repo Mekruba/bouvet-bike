@@ -172,6 +172,16 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `PATCH /api/service-types/{id}` | Admin | `PatchAsync`; paths `/name`, `/description`, `/price`, `/estimatedMinutes`, `/isActive` |
 | `DELETE /api/service-types/{id}` | | 405: orders reference service types, so retire one with `PATCH /isActive false` |
 
+**Discount codes** (Admin; test-first: `DiscountCodeApiTests`):
+
+| Route | Access | Service method |
+|---|---|---|
+| `GET /api/admin/discount-codes` | Admin | `IDiscountService.GetAllAsync`: all codes, with how often each was used |
+| `GET /api/admin/discount-codes/{id}` | Admin | `GetByIdAsync` |
+| `POST /api/admin/discount-codes` | Admin | `CreateAsync` → 201; existing code (any case) → 409 |
+| `PATCH /api/admin/discount-codes/{id}` | Admin | `PatchAsync`; paths `/type`, `/value`, `/validFrom`, `/validTo`, `/maxUses`, `/isActive`. `/code` is read-only: orders keep the code they used |
+| `DELETE /api/admin/discount-codes/{id}` | | 405: retire a code with `PATCH /isActive false` |
+
 **Orders, customer side** (implemented test-first: `CapacityApiTests`, `PriceQuoteApiTests`, `PlaceOrderApiTests`, `CustomerOrderApiTests`):
 
 | Route | Access | Service method |
