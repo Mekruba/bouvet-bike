@@ -227,20 +227,33 @@ The session is a resource without its own URI (it lives in the cookie), so loggi
 - **Status changes are a sub-collection (`POST …/status-changes`)**, not a patched field: each change is a history entry with its own author, time and reason.
 - **The price override is a singleton sub-resource (`PUT`/`DELETE`)**: Admin-only, so it can't share the staff `PATCH`.
 - **`/api/admin/…` is the staff view** of the same orders: the routing-based separation the assignment asks for.
-- In a `POST`, a broken business rule is 400. Only `PATCH` uses 422 (RFC 5789).
+- In a `POST`, a broken business rule is 400 and in a `PATCH` 422 (RFC 5789), except when the order's current state is what forbids it: then 409 (see Errors).
 - **Admin search** matches the reference (exact, any case, prefix optional), email (exact, ignoring case), phone (exact, any format), and customer name or bike brand (substring, ignoring case). Email and phone are value objects stored as whole values, so a partial match would need extra search columns; exact matching keeps the model simple and covers how staff look people up.
 - **A staff `PATCH` applies only what it changes**: internal notes can still be edited on a completed order, while details can't. Moving the due date re-checks capacity (the order doesn't count against itself); a full date is 422 with `nextAvailableDate`.
 
 ### Errors
 
-All errors are RFC 7807 ProblemDetails:
+All errors are RFC 7807 ProblemDetails.
+
+**When a request is well-formed but refused, the status says *why*,** so the client knows what to do next:
+
+| Why | Status | Client should |
+|---|---|---|
+| What you sent breaks a rule, whatever the state (past due date, 150 % discount, invalid phone) | **400** (`POST`/`PUT`), **422** (`PATCH`, RFC 5789) | change the input |
+| Who you are: your role may not do this | **403** | ask someone who may |
+| What you're doing: this resource never supports that method (`DELETE` on a service type) | **405** | use another operation |
+| When you're doing it: *this* resource's current state forbids it, another state would allow it (`New → Completed`, editing a completed order, notes after the repair started) | **409** | reload the resource |
+
+A rule that depends on *other* resources (a fully booked due date, a used-up discount code) is a 400: reloading the order wouldn't help, and the response says what to change instead (`nextAvailableDate`). In the domain, state rules throw `StateConflictException`, a `DomainException` subtype, so the domain stays HTTP-agnostic and only says *what kind* of rule was broken.
 
 | Status | When | Extra fields |
 |---|---|---|
-| 400 | Request validation failed (DataAnnotations on the request record) | `errors`: field → messages |
+| 400 | Request validation failed (DataAnnotations on the request record, or `RequestValidationException`) | `errors`: field → messages |
 | 400 | Business rule violated (`DomainException`) | anything in `DomainException.Details`, e.g. `nextAvailableDate` when a due date is full |
-| 401 / 403 | Not logged in / wrong role | |
+| 401 / 403 | Not logged in / wrong role | 401 carries `WWW-Authenticate` |
 | 404 | `NotFoundException`, including an order the caller may not see | |
+| 405 | The resource doesn't support the method | |
+| 409 | `StateConflictException`: the resource's current state forbids the operation (in `POST` and `PATCH` alike) | |
 | 409 | `ConflictException`: duplicate, or a failed JSON Patch `test` | |
 | 415 | Wrong `Content-Type` (e.g. `application/json` for a JSON Patch) | |
 | 422 | `UnprocessableException`: a JSON Patch that can't be applied, or that would leave the resource invalid | `errors`: field → messages |
