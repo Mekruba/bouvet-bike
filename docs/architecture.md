@@ -196,7 +196,17 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `GET /api/admin/orders/{id}/price-override` | staff | `GetPriceOverrideAsync`; 404 when none is set |
 | `PUT` · `DELETE /api/admin/orders/{id}/price-override` | Admin | `SetPriceOverrideAsync` → **201 when created, 200 when replaced** (RFC 9110); `ClearPriceOverrideAsync` → 204, also when none is set (idempotent) |
 
-**Users:** `POST /api/auth/register` · `login` · `logout`, `GET /api/auth/me` (anyone); `GET` · `POST /api/admin/staff` (Admin). `IAccountService`.
+**Users** (test-first: `AccountApiTests`, `StaffApiTests`):
+
+| Route | Access | Service method |
+|---|---|---|
+| `POST /api/users` | anyone | `IAccountService.RegisterAsync`: a Customer account → 201, `Location: /api/users/me`, signed in; taken email → 409 |
+| `GET /api/users/me` | logged in | `GetCurrentAsync` |
+| `POST /api/session` | anyone | `LoginAsync` → 200 with the user and a cookie; wrong email or password → 401 (same answer for both) |
+| `DELETE /api/session` | anyone | `LogoutAsync` → 204 |
+| `GET` · `POST /api/admin/staff`, `GET /api/admin/staff/{id}` | Admin | `GetStaffAsync`, `CreateStaffAsync` → 201, `GetStaffMemberAsync` |
+
+The session is a resource without its own URI (it lives in the cookie), so logging in is a `POST` answered with 200 and the signed-in user, which RFC 9110 allows for a `POST` whose response describes the result. Every 401 carries a `WWW-Authenticate` challenge (RFC 9110 requires one).
 
 "Staff" means Admin or Mechanic. Deleting orders and overriding prices are Admin-only.
 
