@@ -164,8 +164,9 @@ frontend/src/
 
 - **Styling is centralized.** Colours, type, spacing and shape are CSS variables in `tokens.css` (light mode only, colours from the Bouvet logo). Components use class names from `components.css`; there are no per-component stylesheets or inline styles, apart from the capacity meter's computed width.
 - **Reuse:** every form is built from the same `Field` components and the `useForm` hook. That hook binds inputs and turns a 400/422 response into errors next to the right fields. Every list is a `DataTable` (columns, optional sorting, clickable rows, loading and empty states). The `CapacityStrip` is both the customer's date picker and the staff capacity overview.
+- **Shared order table:** `OrderSummaryTable` is used by both "My orders" and the guest lookup results.
 - **Edits send JSON Patch with only what changed.** `diffPatch` compares the original and edited values and produces `replace`/`remove` operations, matching the API's RFC 6902 contract and its "apply only what changed" rule.
-- **Guest access:** after booking or a successful lookup, the email or phone is kept in `sessionStorage` (this tab only) and sent in the `Order-Contact` header, never in the URL.
+- **Guest access:** the reference in the URL (`/orders/BB-…`) is all an order page needs. Searching by email or phone sends it in the `Order-Contact` header, never in the URL; the last search is kept in `sessionStorage` (this tab only), so going back from an order shows the list again.
 - **Auth:** the session is the HttpOnly cookie; the frontend only asks who is logged in. `RequireRole` hides pages the user can't use, but the API enforces every rule itself.
 - **Staff filters live in the URL** (`?status=New&sort=CustomerName`), so the back button, reloads and shared links keep them.
 - **Tests:** two smoke tests (the app renders; the staff area sends anonymous users to login). Behaviour is covered by the backend API tests; the UI was checked by scripted browser runs with screenshots.

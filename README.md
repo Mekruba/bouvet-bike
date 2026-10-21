@@ -69,7 +69,7 @@ The SQLite database (`backend/BouvetBike/bouvetbike.db`) is created on first sta
 
 **Customers** (no account needed):
 - **Book a service** (`/`): choose a service and a due date (days show how many slots are left), describe the bike, optionally apply a discount code to see the price, then confirm.
-- **Find my order** (`/orders/find`): the order reference plus the email or phone used when booking. Shows status and price, and notes can be changed until the repair starts.
+- **Find my order** (`/orders/find`): **either** the booking reference (opens that order) **or** the email or phone used when booking (lists every booking made with it, any status, newest first). An order shows its status and price, and notes can be changed until the repair starts.
 - With an account (`/register`): orders are linked to it and listed under **My orders**.
 
 **Staff** (`/admin`, log in first, see [Admin login](#admin-login)):
