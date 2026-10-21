@@ -142,6 +142,7 @@ Defined in `OrderStatusTransitions`; anything else throws `DomainException`. `Wa
 
 - Value objects with several fields (`ContactInfo`, `Money`, `AppliedDiscount`, `PriceOverride`) are EF Core complex types, stored as columns on the owner's table. Single-value ones (`Email`, `PhoneNumber`, `OrderReference`) are stored as strings through value converters.
 - Enums are stored as strings, which keeps the database readable.
+- **Timestamps are UTC everywhere.** A convention marks every `DateTime` read from the database as UTC: SQLite doesn't store `DateTime.Kind`, and an unmarked value would be sent without its `Z`, so clients would read it as local time.
 - The status history is its own table, cascade-deleted with the order and auto-included when it's loaded.
 - **SQLite caveats:** decimals are stored as TEXT, so money can't be summed or sorted in SQL (totals are computed in memory). `DateTimeOffset` can't be ordered in SQL, which is why timestamps are UTC `DateTime`.
 
@@ -170,7 +171,7 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `PATCH /api/service-types/{id}` | Admin | `PatchAsync`; paths `/name`, `/description`, `/price`, `/estimatedMinutes`, `/isActive` |
 | `DELETE /api/service-types/{id}` | | 405: orders reference service types, so retire one with `PATCH /isActive false` |
 
-**Orders, customer side** (capacity, quotes, placing and getting are test-first in `CapacityApiTests`, `PriceQuoteApiTests`, `PlaceOrderApiTests`):
+**Orders, customer side** (capacity, quotes, placing and getting are implemented, test-first: `CapacityApiTests`, `PriceQuoteApiTests`, `PlaceOrderApiTests`; notes and "my orders" are next):
 
 | Route | Access | Service method |
 |---|---|---|
