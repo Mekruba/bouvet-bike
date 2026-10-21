@@ -20,6 +20,15 @@ public class ApiExceptionHandlerTests
     }
 
     [Fact]
+    public async Task StateConflict_Becomes409_EvenThoughItIsADomainException()
+    {
+        var (status, body) = await Handle(new StateConflictException("Cannot change status from New to Completed."));
+
+        Assert.Equal(409, status);
+        Assert.Equal("Cannot change status from New to Completed.", body.GetProperty("detail").GetString());
+    }
+
+    [Fact]
     public async Task DomainException_Becomes400_WithDetailsAsExtraFields()
     {
         var (status, body) = await Handle(new DueDateFullException(new DateOnly(2026, 3, 2), new DateOnly(2026, 3, 4)));

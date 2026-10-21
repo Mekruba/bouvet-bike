@@ -68,11 +68,11 @@ public class AdminOrderLifecycleApiTests(ApiFactory factory) : IClassFixture<Api
     [Theory]
     [InlineData(OrderStatus.Completed)] // must be in progress first
     [InlineData(OrderStatus.New)] // already New
-    public async Task ChangeStatus_InvalidTransition_Is400_AndChangesNothing(OrderStatus to)
+    public async Task ChangeStatus_InvalidTransition_Is409_AndChangesNothing(OrderStatus to)
     {
         var id = await PlaceOrder();
 
-        await _mechanic.PostJsonAsync(StatusUrl(id), new ChangeStatusRequest(to, null)).AssertProblem(HttpStatusCode.BadRequest);
+        await _mechanic.PostJsonAsync(StatusUrl(id), new ChangeStatusRequest(to, null)).AssertProblem(HttpStatusCode.Conflict);
 
         var order = await _mechanic.GetAdminOrder(id);
         Assert.Equal(OrderStatus.New, order.Status);
@@ -80,13 +80,13 @@ public class AdminOrderLifecycleApiTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
-    public async Task ChangeStatus_FromClosedOrder_Is400()
+    public async Task ChangeStatus_FromClosedOrder_Is409()
     {
         var id = await PlaceOrder();
         await ChangeStatus(id, OrderStatus.Cancelled);
 
         await _mechanic.PostJsonAsync(StatusUrl(id), new ChangeStatusRequest(OrderStatus.InProgress, null))
-            .AssertProblem(HttpStatusCode.BadRequest);
+            .AssertProblem(HttpStatusCode.Conflict);
     }
 
     [Fact]
@@ -175,12 +175,12 @@ public class AdminOrderLifecycleApiTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
-    public async Task PriceOverride_OnCancelledOrder_Is400()
+    public async Task PriceOverride_OnCancelledOrder_Is409()
     {
         var id = await PlaceOrder();
         await ChangeStatus(id, OrderStatus.Cancelled);
 
-        await _admin.PutJsonAsync(PriceUrl(id), new OverridePriceRequest(700, "x")).AssertProblem(HttpStatusCode.BadRequest);
+        await _admin.PutJsonAsync(PriceUrl(id), new OverridePriceRequest(700, "x")).AssertProblem(HttpStatusCode.Conflict);
     }
 
     [Theory]

@@ -64,13 +64,13 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
     }
 
     [Fact]
-    public async Task PatchNotes_AfterRepairHasStarted_Is422_AndChangesNothing()
+    public async Task PatchNotes_AfterRepairHasStarted_Is409_AndChangesNothing()
     {
         var order = await PlaceGuestOrder(notes: "Original");
         await factory.SetStatus(order.Reference, OrderStatus.InProgress);
 
         await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "replace", "path": "/notes", "value": "Too late" }]""", GuestContact)
-            .AssertProblem(HttpStatusCode.UnprocessableEntity);
+            .AssertProblem(HttpStatusCode.Conflict);
 
         var current = await Get(order);
         Assert.Equal(("Original", false), (current.Notes, current.CanEditNotes));

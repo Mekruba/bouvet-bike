@@ -76,7 +76,7 @@ public class MaintenanceOrderTests
             order.ChangeStatus(status, null, _clock);
         }
 
-        Assert.Throws<DomainException>(() => order.ChangeStatus(path[^1], null, _clock));
+        Assert.Throws<StateConflictException>(() => order.ChangeStatus(path[^1], null, _clock));
         Assert.Equal(path.Length - 1, order.StatusHistory.Count);
     }
 
@@ -101,7 +101,7 @@ public class MaintenanceOrderTests
         var order = Order(_clock);
         order.ChangeStatus(status, null, _clock);
 
-        Assert.Throws<DomainException>(() => order.UpdateCustomerNotes("More info", _clock));
+        Assert.Throws<StateConflictException>(() => order.UpdateCustomerNotes("More info", _clock));
     }
 
     [Fact]
@@ -136,8 +136,8 @@ public class MaintenanceOrderTests
         var order = Order(_clock);
         order.ChangeStatus(OrderStatus.Cancelled, null, _clock);
 
-        Assert.Throws<DomainException>(() => order.UpdateDetails(Contact(), "Trek", null, Today, _clock));
-        Assert.Throws<DomainException>(() => order.ChangeService(Service("Other"), _clock));
+        Assert.Throws<StateConflictException>(() => order.UpdateDetails(Contact(), "Trek", null, Today, _clock));
+        Assert.Throws<StateConflictException>(() => order.ChangeService(Service("Other"), _clock));
     }
 
     [Fact]

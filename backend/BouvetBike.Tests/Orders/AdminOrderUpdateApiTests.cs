@@ -55,13 +55,13 @@ public class AdminOrderUpdateApiTests(ApiFactory factory) : IClassFixture<ApiFac
     }
 
     [Fact]
-    public async Task Patch_Details_OnCompletedOrder_Is422()
+    public async Task Patch_Details_OnCompletedOrder_Is409()
     {
         var (id, reference) = await PlaceOrderWithReference();
         await factory.SetStatus(reference, OrderStatus.InProgress);
         await factory.SetStatus(reference, OrderStatus.Completed);
 
-        await Patch(id, """[{ "op": "replace", "path": "/bikeBrand", "value": "Giant" }]""").AssertProblem(HttpStatusCode.UnprocessableEntity);
+        await Patch(id, """[{ "op": "replace", "path": "/bikeBrand", "value": "Giant" }]""").AssertProblem(HttpStatusCode.Conflict);
     }
 
     [Fact]

@@ -47,7 +47,7 @@ public class OrderPricingTests
         var order = Order(_clock);
         order.ApplyDiscount(DiscountCode.Create("A", DiscountType.Percentage, 10).Redeem(_clock), _clock);
 
-        Assert.Throws<DomainException>(() =>
+        Assert.Throws<StateConflictException>(() =>
             order.ApplyDiscount(DiscountCode.Create("B", DiscountType.Percentage, 10).Redeem(_clock), _clock));
     }
 
@@ -78,6 +78,6 @@ public class OrderPricingTests
         var order = Order(_clock);
         order.ChangeStatus(OrderStatus.Cancelled, null, _clock);
 
-        Assert.Throws<DomainException>(() => order.OverridePrice(new Money(100), "Goodwill", Guid.NewGuid(), _clock));
+        Assert.Throws<StateConflictException>(() => order.OverridePrice(new Money(100), "Goodwill", Guid.NewGuid(), _clock));
     }
 }
