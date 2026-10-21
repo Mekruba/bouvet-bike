@@ -1,6 +1,7 @@
 using BouvetBike.Shared.Persistence;
 using BouvetBike.Users;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -12,11 +13,16 @@ namespace BouvetBike.Tests;
 
 /// <summary>
 /// Boots the API against a throwaway SQLite file per factory instance, with <see cref="TestAuthHandler"/>
-/// replacing the real sign-in, a fixed clock (<see cref="TestData.Today"/>), and the <see cref="TestUsers"/> in the database.
+/// for requests with the test role header (others use the real cookie sign-in), a fixed clock (<see cref="TestData.Today"/>), and the <see cref="TestUsers"/> in the database.
 /// </summary>
 public class ApiFactory : WebApplicationFactory<Program>
 {
+    private const string TestOrCookieScheme = "TestOrCookie";
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"bouvetbike-test-{Guid.NewGuid()}.db");
+
+    /// <summary>The admin the app seeds from configuration (<c>Admin:Email</c>, <c>Admin:Password</c>).</summary>
+    public const string SeededAdminEmail = "admin@bouvetbike.test";
+    public const string SeededAdminPassword = "Seeded-Admin-1";
 
     /// <summary>The app's clock. Starts at <see cref="TestData.Today"/>; tests may advance it.</summary>
     public FakeTimeProvider Clock { get; } = TestData.Clock();
@@ -46,20 +52,28 @@ public class ApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={_dbPath}");
+        builder.UseSetting("Admin:Email", SeededAdminEmail);
+        builder.UseSetting("Admin:Password", SeededAdminPassword);
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
 
-            services.AddAuthentication(TestAuthHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null);
+            // Requests with the test role header use the test scheme; all others use the app's real cookie sign-in,
+            // so auth tests exercise the real flow (register, log in, cookie, log out).
+            services.AddAuthentication()
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null)
+                .AddPolicyScheme(TestOrCookieScheme, null, options => options.ForwardDefaultSelector = context =>
+                    context.Request.Headers.ContainsKey(TestAuthHandler.RoleHeader) ? TestAuthHandler.SchemeName : IdentityConstants.ApplicationScheme);
 
-            // Win over whatever defaults the app sets (e.g. Identity's cookie scheme).
+            // Win over the defaults the app sets (Identity's cookie scheme).
             services.PostConfigure<AuthenticationOptions>(options =>
             {
-                options.DefaultScheme = TestAuthHandler.SchemeName;
-                options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
-                options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
-                options.DefaultForbidScheme = TestAuthHandler.SchemeName;
+                options.DefaultScheme = TestOrCookieScheme;
+                options.DefaultAuthenticateScheme = TestOrCookieScheme;
+                options.DefaultChallengeScheme = TestOrCookieScheme;
+                options.DefaultForbidScheme = TestOrCookieScheme;
+                options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultSignOutScheme = IdentityConstants.ApplicationScheme;
             });
         });
     }

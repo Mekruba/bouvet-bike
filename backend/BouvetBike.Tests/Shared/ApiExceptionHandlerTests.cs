@@ -48,6 +48,17 @@ public class ApiExceptionHandlerTests
     }
 
     [Fact]
+    public async Task RequestValidation_Becomes400_WithFieldErrors()
+    {
+        var errors = new Dictionary<string, string[]> { ["password"] = ["Needs a digit."] };
+
+        var (status, body) = await Handle(new RequestValidationException("Invalid password.", errors));
+
+        Assert.Equal(400, status);
+        Assert.Equal("Needs a digit.", body.GetProperty("errors").GetProperty("password")[0].GetString());
+    }
+
+    [Fact]
     public async Task OtherExceptions_AreNotHandled()
     {
         var handled = await new ApiExceptionHandler(ProblemDetailsService())
