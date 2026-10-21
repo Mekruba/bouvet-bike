@@ -51,6 +51,6 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 - Write failing **API tests** first (`HttpClient` against `ApiFactory`, real SQLite), commit them red, then implement. Domain unit tests cover rules on the aggregates. No mocks of services or the DbContext.
 - `factory.CreateClient(Roles.Admin)` signs in as a role via `TestAuthHandler` (header `X-Test-Role`); `CreateClient(role: null)` is anonymous. `TestUsers` has the fixed user IDs. The test users exist in the database (seeded by `ApiFactory`).
 - The app clock is `factory.Clock` (a `FakeTimeProvider`, today = `TestData.Today` = 2026-03-02); never depend on the real date. `factory.WithDbAsync(db => …)` sets up data that has no API yet.
-- `ApiAssert` helpers: `PatchJsonAsync`, `AssertStatus`, `AssertProblem` (checks `application/problem+json`), `AssertFieldError`, `ReadAs<T>`.
+- `ApiAssert` helpers: `PatchJsonAsync`, `AssertStatus`, `AssertProblem` (checks `application/problem+json`), `AssertFieldError`, `ReadAs<T>`, and `AssertSameJson` for responses containing lists (record equality compares lists by reference).
 - Tests in a class share one database, so create the data you change (unique names) and don't assume exact counts. For orders, use `OrderTestHelpers.FreshDay()` for the due date unless the test is about capacity; more than 5 orders on one date make the next one fail as fully booked.
 - An interface method without tests yet throws `NotImplementedException("Not yet test-driven.")`. Write its tests before implementing it.

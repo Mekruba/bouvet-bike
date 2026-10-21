@@ -182,7 +182,7 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `GET /api/orders/{reference}` | owner, or guest with `Order-Contact` header | `GetAsync` |
 | `PATCH /api/orders/{reference}` | same | `PatchAsync`: JSON Patch, `/notes` only, while New |
 
-**Orders, staff side:**
+**Orders, staff side** (search, get, patch and delete are implemented test-first: `AdminOrderQueryApiTests`, `AdminOrderUpdateApiTests`; status changes and price override are next):
 
 | Route | Access | Service method |
 |---|---|---|

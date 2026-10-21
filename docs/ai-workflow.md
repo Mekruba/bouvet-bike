@@ -48,3 +48,8 @@
   - Eight orders shared one due date, so the capacity rule (correctly) rejected the sixth. Fixed with a `FreshDay()` helper, and the rule went into `CLAUDE.md`.
   - A test required a relative `Location` header. The API sends an absolute one, which RFC 9110 also allows, so the test was over-specified and now checks that it points at the order.
   - After the fixes, the AI ran the real app with `curl` and spotted a bug no test covered: timestamps read back from SQLite came without the `Z` (SQLite drops `DateTime.Kind`), so browsers would show them in the wrong time zone. A failing test was written first, then fixed with a UTC convention for every `DateTime`.
+- **Staff order API: search, get, patch, delete** (Claude Code): of 48 new tests, 43 passed on the first implementation run. All 5 failures were in the tests again:
+  - Four compared response records that contain lists. C# record equality compares lists by reference, so identical responses never matched. Fixed with an `AssertSameJson` helper.
+  - One compared sorted results with an unsorted expectation.
+
+  Pattern so far: the AI's test code fails more often than its production code, on test plumbing (shared data, equality, ordering) rather than on the behaviour being specified. Every red-after-implementation run is therefore checked to see whether the code or the test is wrong before anything is changed.
