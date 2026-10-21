@@ -47,6 +47,11 @@ using (var scope = app.Services.CreateScope())
 {
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
     await IdentitySeeder.SeedAsync(scope.ServiceProvider);
+
+    if (app.Environment.IsDevelopment())
+    {
+        await DemoDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
+    }
 }
 
 var api = app.MapGroup("/api");
