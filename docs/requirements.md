@@ -40,7 +40,7 @@ Optional change request: estimated price shown before submit; admin can override
 
 ### Order lookup
 
-- **Lookup requires the order reference plus the email or phone on the order.** Read literally, "reference, email, or phone" would let anyone who knows a phone number see that person's orders and edit their notes. Requiring two factors works like an airline booking lookup (booking reference + last name).
+- **Lookup requires the order reference plus the email or phone on the order**, sent in the `Order-Contact` request header (`GET /api/orders/{reference}`). Read literally, "reference, email, or phone" would let anyone who knows a phone number see that person's orders and edit their notes. Requiring two factors works like an airline booking lookup (booking reference + last name).
 - **References are short but not guessable:** 8 characters from an alphabet without look-alike characters (no `0/O`, `1/I/L`), e.g. `BB-7K3QX9MD`. They are never sequential, since they act as half of the lookup credential.
 - The lookup endpoint is rate-limited to slow down guessing.
 

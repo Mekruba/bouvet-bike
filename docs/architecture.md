@@ -170,30 +170,39 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `PATCH /api/service-types/{id}` | Admin | `PatchAsync`; paths `/name`, `/description`, `/price`, `/estimatedMinutes`, `/isActive` |
 | `DELETE /api/service-types/{id}` | | 405: orders reference service types, so retire one with `PATCH /isActive false` |
 
-**Orders and users (planned; to be reworked into REST resources when implemented):**
+**Orders, customer side** (capacity, quotes, placing and getting are test-first in `CapacityApiTests`, `PriceQuoteApiTests`, `PlaceOrderApiTests`):
 
 | Route | Access | Service method |
 |---|---|---|
-| `GET /api/orders/capacity?from=&days=` | anyone | `ICapacityService.GetAsync` |
-| `POST /api/orders/quote` | anyone | `ICustomerOrderService.QuoteAsync` |
-| `POST /api/orders` | anyone | `ICustomerOrderService.PlaceAsync` (201) |
-| `POST /api/orders/lookup` | anyone | `ICustomerOrderService.LookupAsync` |
-| `PUT /api/orders/{reference}/notes` | anyone (proves access) | `ICustomerOrderService.UpdateNotesAsync` |
-| `GET /api/orders/mine` | Customer | `ICustomerOrderService.GetMyOrdersAsync` |
-| `POST /api/auth/register` · `login` · `logout`, `GET /api/auth/me` | anyone | `IAccountService` |
-| `GET /api/admin/orders?search=&status=&…` | staff | `IAdminOrderService.SearchAsync` |
-| `GET` · `PUT /api/admin/orders/{id}` | staff | `GetAsync`, `UpdateAsync` |
-| `DELETE /api/admin/orders/{id}` | Admin | `DeleteAsync` |
-| `POST /api/admin/orders/{id}/status` | staff | `ChangeStatusAsync` |
-| `PUT /api/admin/orders/{id}/internal-notes` | staff | `UpdateInternalNotesAsync` |
-| `PUT` · `DELETE /api/admin/orders/{id}/discount` | staff | `ApplyDiscountAsync`, `RemoveDiscountAsync` |
-| `PUT` · `DELETE /api/admin/orders/{id}/price-override` | Admin | `OverridePriceAsync`, `ClearPriceOverrideAsync` |
-| `GET /api/admin/capacity?from=&days=` | staff | `ICapacityService.GetAsync` |
-| `GET` · `POST /api/admin/staff` | Admin | `IAccountService.GetStaffAsync`, `CreateStaffAsync` |
+| `GET /api/capacity?from=&days=` | anyone | `ICapacityService.GetAsync`: bookings per day, default today + 14 days, max 60 |
+| `GET /api/price-quotes?serviceTypeId=&discountCode=` | anyone | `ICustomerOrderService.QuoteAsync`: never uses up the code |
+| `POST /api/orders` | anyone | `PlaceAsync` → 201, `Location: /api/orders/{reference}`; full date → 400 with `nextAvailableDate` |
+| `GET /api/orders` | Customer | `GetMyOrdersAsync` |
+| `GET /api/orders/{reference}` | owner, or guest with `Order-Contact` header | `GetAsync` |
+| `PATCH /api/orders/{reference}` | same | `PatchAsync`: JSON Patch, `/notes` only, while New |
+
+**Orders, staff side:**
+
+| Route | Access | Service method |
+|---|---|---|
+| `GET /api/admin/orders?search=&status=&serviceTypeId=&dueFrom=&dueTo=&sort=&page=` | staff | `IAdminOrderService.SearchAsync` |
+| `GET /api/admin/orders/{id}` | staff | `GetAsync` |
+| `PATCH /api/admin/orders/{id}` | staff | `PatchAsync`: details, service, due date, `/internalNotes`, `/discountCode` |
+| `DELETE /api/admin/orders/{id}` | Admin | `DeleteAsync` → 204 |
+| `GET` · `POST /api/admin/orders/{id}/status-changes` | staff | `GetStatusChangesAsync`, `AddStatusChangeAsync` → 201 |
+| `PUT` · `DELETE /api/admin/orders/{id}/price-override` | Admin | `SetPriceOverrideAsync`, `ClearPriceOverrideAsync` → 204 |
+
+**Users:** `POST /api/auth/register` · `login` · `logout`, `GET /api/auth/me` (anyone); `GET` · `POST /api/admin/staff` (Admin). `IAccountService`.
 
 "Staff" means Admin or Mechanic. Deleting orders and overriding prices are Admin-only.
 
-**Lookup is a `POST`** so the email or phone number isn't in the URL, browser history or server logs.
+**Why these shapes:**
+- **Guests prove access with an `Order-Contact` request header** (email or phone on the order), not a query parameter or a `POST /lookup`: the order stays a plain `GET` resource, and personal data stays out of URLs, browser history and logs. No `X-` prefix (RFC 6648). A wrong or missing contact gives 404, so a guessed reference doesn't reveal that an order exists.
+- **A quote is a `GET`**: it's safe and idempotent, a calculation, not a new resource.
+- **Status changes are a sub-collection (`POST …/status-changes`)**, not a patched field: each change is a history entry with its own author, time and reason.
+- **The price override is a singleton sub-resource (`PUT`/`DELETE`)**: Admin-only, so it can't share the staff `PATCH`.
+- **`/api/admin/…` is the staff view** of the same orders: the routing-based separation the assignment asks for.
+- In a `POST`, a broken business rule is 400. Only `PATCH` uses 422 (RFC 5789).
 
 ### Errors
 
