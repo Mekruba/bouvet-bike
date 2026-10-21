@@ -54,6 +54,8 @@ public class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={_dbPath}");
         builder.UseSetting("Admin:Email", SeededAdminEmail);
         builder.UseSetting("Admin:Password", SeededAdminPassword);
+        // Effectively off, so tests aren't throttled; RateLimitTests uses its own low limit.
+        builder.UseSetting("RateLimiting:OrderLookups:PermitsPerMinute", "100000");
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);

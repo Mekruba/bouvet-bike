@@ -43,12 +43,12 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task Place_Location_ReturnsTheOrder_WithContactHeader()
+    public async Task Place_Location_ReturnsTheOrder()
     {
         var response = await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
         var placed = await response.ReadAs<CustomerOrderResponse>(HttpStatusCode.Created);
 
-        var fetched = await _anonymous.GetAsync(response.Headers.Location!.OriginalString, (OrderAccess.ContactHeader, "kari@example.com"))
+        var fetched = await _anonymous.GetAsync(response.Headers.Location!.OriginalString)
             .ReadAs<CustomerOrderResponse>();
 
         Assert.Equal(placed, fetched);
@@ -161,7 +161,7 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
 
-        var json = await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}", (OrderAccess.ContactHeader, "kari@example.com"))
+        var json = await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}")
             .AssertStatus(HttpStatusCode.OK);
 
         // SQLite doesn't store DateTime.Kind; without the trailing Z a browser would read this as local time.
@@ -170,19 +170,14 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
     // ---- getting by reference ----
 
-    [Theory]
-    [InlineData("kari@example.com")]
-    [InlineData("KARI@example.com")]
-    [InlineData("+47 912 34 567")]
-    [InlineData("91234567")]
-    public async Task Get_AsGuest_WithEmailOrPhoneInAnyFormat(string contact)
+    [Fact]
+    public async Task Get_ByReferenceAlone_ReturnsTheOrder()
     {
         var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
 
-        var fetched = await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}", (OrderAccess.ContactHeader, contact))
-            .ReadAs<CustomerOrderResponse>();
+        var fetched = await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}").ReadAs<CustomerOrderResponse>();
 
-        Assert.Equal(placed.Reference, fetched.Reference);
+        Assert.Equal(placed, fetched);
     }
 
     [Fact]
@@ -191,38 +186,21 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
         var shortForm = placed.Reference[OrderReference.Prefix.Length..].ToLowerInvariant();
 
-        await _anonymous.GetAsync($"{OrdersUrl}/{shortForm}", (OrderAccess.ContactHeader, "kari@example.com"))
+        await _anonymous.GetAsync($"{OrdersUrl}/{shortForm}")
             .AssertStatus(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task Get_WithWrongContact_Is404()
-    {
-        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
-
-        await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}", (OrderAccess.ContactHeader, "someone@else.com"))
-            .AssertProblem(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task Get_WithoutContact_Is404()
-    {
-        var placed = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
-
-        await _anonymous.GetAsync($"{OrdersUrl}/{placed.Reference}").AssertProblem(HttpStatusCode.NotFound);
     }
 
     [Theory]
     [InlineData("BB-23456789")] // valid format, no such order
     [InlineData("not-a-reference")]
     public async Task Get_UnknownReference_Is404(string reference) =>
-        await _anonymous.GetAsync($"{OrdersUrl}/{reference}", (OrderAccess.ContactHeader, "kari@example.com"))
+        await _anonymous.GetAsync($"{OrdersUrl}/{reference}")
             .AssertProblem(HttpStatusCode.NotFound);
 
     // ---- logged-in customers ----
 
     [Fact]
-    public async Task Place_AsCustomer_OwnsTheOrder_NoContactNeeded()
+    public async Task Place_AsCustomer_IsLinkedToTheAccount()
     {
         var placed = await _customer.PlaceOrder(NewOrder(await _customer.ServiceTypeId(), FreshDay(), email: "other@example.com"));
 
@@ -230,10 +208,10 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task Get_SomeoneElsesOrder_AsCustomer_Is404()
+    public async Task Get_AnyOrder_WithItsReference_EvenAsAnotherCustomer()
     {
         var guestOrder = await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay()));
 
-        await _customer.GetAsync($"{OrdersUrl}/{guestOrder.Reference}").AssertProblem(HttpStatusCode.NotFound);
+        await _customer.GetAsync($"{OrdersUrl}/{guestOrder.Reference}").AssertStatus(HttpStatusCode.OK);
     }
 }

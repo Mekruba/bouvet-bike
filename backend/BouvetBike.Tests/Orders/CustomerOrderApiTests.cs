@@ -12,8 +12,6 @@ namespace BouvetBike.Tests.Orders;
 /// </summary>
 public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
-    private static readonly (string, string) GuestContact = (OrderAccess.ContactHeader, "kari@example.com");
-
     private readonly HttpClient _anonymous = factory.CreateClient(role: null);
     private readonly HttpClient _customer = factory.CreateClient(Roles.Customer);
 
@@ -25,7 +23,7 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
         var order = await PlaceGuestOrder(notes: "Squeaks");
 
         var patched = await _anonymous.PatchJsonAsync(
-                Url(order), """[{ "op": "replace", "path": "/notes", "value": "Squeaks when braking" }]""", GuestContact)
+                Url(order), """[{ "op": "replace", "path": "/notes", "value": "Squeaks when braking" }]""")
             .ReadAs<CustomerOrderResponse>();
 
         Assert.Equal("Squeaks when braking", patched.Notes);
@@ -37,7 +35,7 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
     {
         var order = await PlaceGuestOrder(notes: null);
 
-        var patched = await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "add", "path": "/notes", "value": "Back wheel too" }]""", GuestContact)
+        var patched = await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "add", "path": "/notes", "value": "Back wheel too" }]""")
             .ReadAs<CustomerOrderResponse>();
 
         Assert.Equal("Back wheel too", patched.Notes);
@@ -48,7 +46,7 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
     {
         var order = await PlaceGuestOrder(notes: "Squeaks");
 
-        var patched = await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "remove", "path": "/notes" }]""", GuestContact)
+        var patched = await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "remove", "path": "/notes" }]""")
             .ReadAs<CustomerOrderResponse>();
 
         Assert.Null(patched.Notes);
@@ -69,7 +67,7 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
         var order = await PlaceGuestOrder(notes: "Original");
         await factory.SetStatus(order.Reference, OrderStatus.InProgress);
 
-        await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "replace", "path": "/notes", "value": "Too late" }]""", GuestContact)
+        await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "replace", "path": "/notes", "value": "Too late" }]""")
             .AssertProblem(HttpStatusCode.Conflict);
 
         var current = await Get(order);
@@ -84,7 +82,7 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
     {
         var order = await PlaceGuestOrder(notes: "Original");
 
-        await _anonymous.PatchJsonAsync(Url(order), patch, GuestContact).AssertProblem(HttpStatusCode.UnprocessableEntity);
+        await _anonymous.PatchJsonAsync(Url(order), patch).AssertProblem(HttpStatusCode.UnprocessableEntity);
 
         Assert.Equal("Original", (await Get(order)).Notes);
     }
@@ -95,7 +93,7 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
         var order = await PlaceGuestOrder();
         var tooLong = new string('x', MaintenanceOrder.NotesMaxLength + 1);
 
-        var problem = await _anonymous.PatchJsonAsync(Url(order), $$"""[{ "op": "replace", "path": "/notes", "value": "{{tooLong}}" }]""", GuestContact)
+        var problem = await _anonymous.PatchJsonAsync(Url(order), $$"""[{ "op": "replace", "path": "/notes", "value": "{{tooLong}}" }]""")
             .AssertProblem(HttpStatusCode.UnprocessableEntity);
 
         problem.AssertFieldError("notes");
@@ -111,19 +109,20 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
               { "op": "test", "path": "/notes", "value": "Something else" },
               { "op": "replace", "path": "/notes", "value": "Changed" }
             ]
-            """, GuestContact).AssertProblem(HttpStatusCode.Conflict);
+            """).AssertProblem(HttpStatusCode.Conflict);
 
         Assert.Equal("Original", (await Get(order)).Notes);
     }
 
     [Fact]
-    public async Task PatchNotes_WithoutOrWithWrongContact_Is404()
+    public async Task PatchNotes_WithReferenceAlone_Works()
     {
         var order = await PlaceGuestOrder();
-        const string patch = """[{ "op": "replace", "path": "/notes", "value": "Hijacked" }]""";
 
-        await _anonymous.PatchJsonAsync(Url(order), patch).AssertProblem(HttpStatusCode.NotFound);
-        await _anonymous.PatchJsonAsync(Url(order), patch, (OrderAccess.ContactHeader, "someone@else.com")).AssertProblem(HttpStatusCode.NotFound);
+        var patched = await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "replace", "path": "/notes", "value": "Via the reference" }]""")
+            .ReadAs<CustomerOrderResponse>();
+
+        Assert.Equal("Via the reference", patched.Notes);
     }
 
     [Fact]
@@ -140,7 +139,7 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
     {
         var order = await PlaceGuestOrder();
 
-        await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "frobnicate", "path": "/notes" }]""", GuestContact)
+        await _anonymous.PatchJsonAsync(Url(order), """[{ "op": "frobnicate", "path": "/notes" }]""")
             .AssertStatus(HttpStatusCode.BadRequest);
     }
 
@@ -182,5 +181,5 @@ public class CustomerOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactor
         await _anonymous.PlaceOrder(NewOrder(await _anonymous.ServiceTypeId(), FreshDay(), notes: notes));
 
     private Task<CustomerOrderResponse> Get(CustomerOrderResponse order) =>
-        _anonymous.GetAsync(Url(order), GuestContact).ReadAs<CustomerOrderResponse>();
+        _anonymous.GetAsync(Url(order)).ReadAs<CustomerOrderResponse>();
 }

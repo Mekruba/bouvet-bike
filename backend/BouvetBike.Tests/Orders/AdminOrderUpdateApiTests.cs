@@ -70,7 +70,7 @@ public class AdminOrderUpdateApiTests(ApiFactory factory) : IClassFixture<ApiFac
         var (id, reference) = await PlaceOrderWithReference();
         await Patch(id, """[{ "op": "add", "path": "/internalNotes", "value": "Secret" }]""").AssertStatus(HttpStatusCode.OK);
 
-        var json = await _anonymous.GetAsync($"{OrdersUrl}/{reference}", (OrderAccess.ContactHeader, "kari@example.com"))
+        var json = await _anonymous.GetAsync($"{OrdersUrl}/{reference}")
             .AssertStatus(HttpStatusCode.OK);
 
         Assert.DoesNotContain("Secret", json.GetRawText());

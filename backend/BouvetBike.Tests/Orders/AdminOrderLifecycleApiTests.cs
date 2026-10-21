@@ -157,7 +157,7 @@ public class AdminOrderLifecycleApiTests(ApiFactory factory) : IClassFixture<Api
         await _admin.PutJsonAsync(PriceUrl(id), new OverridePriceRequest(500, "Goodwill")).AssertStatus(HttpStatusCode.Created);
 
         var staffView = await _mechanic.GetAdminOrder(id);
-        var customerView = await _anonymous.GetAsync($"{OrdersUrl}/{reference}", (OrderAccess.ContactHeader, "kari@example.com"))
+        var customerView = await _anonymous.GetAsync($"{OrdersUrl}/{reference}")
             .ReadAs<CustomerOrderResponse>();
         Assert.Equal((500m, true, 790m), (staffView.Price.Total.Amount, staffView.Price.IsOverridden, staffView.Price.ServicePrice.Amount));
         Assert.Equal((500m, true), (customerView.Price.Total.Amount, customerView.Price.IsOverridden));
