@@ -16,7 +16,6 @@ import { PriceSummary } from '../components/PriceSummary.tsx'
 import { bikeBrands } from '../lib/bikeBrands.ts'
 import { cx } from '../lib/cx.ts'
 import { addDays, formatDate, formatMinutes, formatMoney, todayIso } from '../lib/format.ts'
-import { rememberContact } from '../lib/orderAccess.ts'
 import { useForm } from '../lib/useForm.ts'
 
 const DAYS_SHOWN = 14
@@ -134,7 +133,6 @@ export function BookingPage() {
       },
     )
     if (order) {
-      rememberContact(order.reference, values.email)
       navigate(`/orders/${order.reference}?placed=1`)
     }
   }

@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { Navigate, useParams, useSearchParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { ApiError, errorMessage } from '../api/client.ts'
 import { ordersApi } from '../api/endpoints.ts'
 import type { CustomerOrder, OrderStatus } from '../api/types.ts'
 import { useApi } from '../api/useApi.ts'
-import { useAuth } from '../auth/useAuth.ts'
 import { Alert } from '../components/Alert.tsx'
 import { Button } from '../components/Button.tsx'
 import { Card } from '../components/Card.tsx'
@@ -15,34 +14,32 @@ import { PriceSummary } from '../components/PriceSummary.tsx'
 import { StatusBadge } from '../components/StatusBadge.tsx'
 import { cx } from '../lib/cx.ts'
 import { formatDate, formatDateTime } from '../lib/format.ts'
-import { recallContact } from '../lib/orderAccess.ts'
 
-/** An order as the customer sees it: guests via the remembered contact, logged-in customers as owners. */
+/** An order as the customer sees it. The reference in the URL is all it takes. */
 export function OrderPage() {
   const { reference = '' } = useParams()
   const [searchParams] = useSearchParams()
-  const { user, loading: authLoading } = useAuth()
-  const contact = recallContact(reference)
-  const order = useApi(() => ordersApi.get(reference, contact), [reference, contact, user?.id])
+  const order = useApi(() => ordersApi.get(reference), [reference])
 
-  if (order.error instanceof ApiError && order.error.status === 404 && !authLoading) {
-    // No access without the contact details: ask for them, keeping the reference.
-    return <Navigate to={`/orders/find?reference=${encodeURIComponent(reference)}&missing=1`} replace />
+  if (order.error instanceof ApiError && order.error.status === 404) {
+    return (
+      <Alert tone="warning" title={`No order with the reference `} action={<Link to="/orders/find">Find my order</Link>}>
+        Check the reference in your confirmation, or search with the email or phone number you booked with.
+      </Alert>
+    )
   }
   if (order.error) return <Alert tone="danger" title="Could not load the order">{errorMessage(order.error)}</Alert>
   if (!order.data) return <Loading />
 
-  return <OrderDetails order={order.data} contact={contact} placed={searchParams.has('placed')} onChange={order.setData} />
+  return <OrderDetails order={order.data} placed={searchParams.has('placed')} onChange={order.setData} />
 }
 
 function OrderDetails({
   order,
-  contact,
   placed,
   onChange,
 }: {
   order: CustomerOrder
-  contact: string | null
   placed: boolean
   onChange: (order: CustomerOrder) => void
 }) {
@@ -50,8 +47,8 @@ function OrderDetails({
     <div className="stack stack--lg">
       {placed && (
         <Alert tone="success" title="Thank you, your booking is confirmed">
-          Your reference is <strong className="mono">{order.reference}</strong>. Keep it, with your email or phone number, to
-          follow the repair here.
+          Your reference is <strong className="mono">{order.reference}</strong>. Use it, or the email or phone number you
+          booked with, to follow the repair under Find my order.
         </Alert>
       )}
 
@@ -89,7 +86,7 @@ function OrderDetails({
           </Card>
 
           {/* Keyed on the saved notes, so the editor resets when they change. */}
-          <NotesCard key={order.notes ?? ''} order={order} contact={contact} onChange={onChange} />
+          <NotesCard key={order.notes ?? ''} order={order} onChange={onChange} />
         </div>
 
         <aside className="with-sidebar__aside">
@@ -136,7 +133,7 @@ function StatusProgress({ status }: { status: OrderStatus }) {
   )
 }
 
-function NotesCard({ order, contact, onChange }: { order: CustomerOrder; contact: string | null; onChange: (order: CustomerOrder) => void }) {
+function NotesCard({ order, onChange }: { order: CustomerOrder; onChange: (order: CustomerOrder) => void }) {
   const [notes, setNotes] = useState(order.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null)
@@ -159,7 +156,6 @@ function NotesCard({ order, contact, onChange }: { order: CustomerOrder; contact
       const trimmed = notes.trim()
       const updated = await ordersApi.patch(
         order.reference,
-        contact,
         trimmed ? [{ op: 'replace', path: '/notes', value: trimmed }] : [{ op: 'remove', path: '/notes' }],
       )
       onChange(updated)

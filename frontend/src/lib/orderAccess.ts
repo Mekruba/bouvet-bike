@@ -1,25 +1,21 @@
 /**
- * Remembers the email or phone a guest used for an order, for this browser tab only (sessionStorage).
- * It's sent in the Order-Contact header, never in the URL, so it doesn't end up in history or server logs.
+ * Remembers the last email or phone a guest searched with, for this browser tab only (sessionStorage), so
+ * going back from an order shows the list again. It's never put in a URL.
  */
-const key = 'bouvetbike.order-contacts'
+const key = 'bouvetbike.last-order-search'
 
-function read(): Record<string, string> {
+export function rememberSearch(contact: string): void {
   try {
-    return JSON.parse(sessionStorage.getItem(key) ?? '{}') as Record<string, string>
+    sessionStorage.setItem(key, contact)
   } catch {
-    return {}
+    // Storage unavailable (private mode): the guest just searches again.
   }
 }
 
-export function rememberContact(reference: string, contact: string): void {
+export function recallSearch(): string {
   try {
-    sessionStorage.setItem(key, JSON.stringify({ ...read(), [reference.toUpperCase()]: contact }))
+    return sessionStorage.getItem(key) ?? ''
   } catch {
-    // Storage unavailable (private mode): the guest just enters it again.
+    return ''
   }
-}
-
-export function recallContact(reference: string): string | null {
-  return read()[reference.toUpperCase()] ?? null
 }

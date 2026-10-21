@@ -22,8 +22,8 @@ import type {
   StatusChange,
 } from './types.ts'
 
-/** Header with the email or phone on an order, how guests prove access (never sent in the URL). */
-const contactHeader = (contact?: string | null) => (contact ? { 'Order-Contact': contact } : undefined)
+/** Guests find their orders by email or phone, sent in a header so it never appears in a URL. */
+const contactHeader = (contact: string) => ({ 'Order-Contact': contact })
 
 export const catalogApi = {
   list: (includeInactive = false) => api<ServiceType[]>(`/service-types${query({ includeInactive: includeInactive || undefined })}`),
@@ -36,10 +36,12 @@ export const ordersApi = {
   quote: (serviceTypeId: string, discountCode?: string | null) =>
     api<OrderPrice>(`/price-quotes${query({ serviceTypeId, discountCode })}`),
   place: (request: PlaceOrderRequest) => api<CustomerOrder>('/orders', { body: request }),
-  get: (reference: string, contact?: string | null) =>
-    api<CustomerOrder>(`/orders/${encodeURIComponent(reference)}`, { headers: contactHeader(contact) }),
-  patch: (reference: string, contact: string | null, patch: JsonPatchOperation[]) =>
-    api<CustomerOrder>(`/orders/${encodeURIComponent(reference)}`, { patch, headers: contactHeader(contact) }),
+  /** The reference alone opens the order. */
+  get: (reference: string) => api<CustomerOrder>(`/orders/${encodeURIComponent(reference)}`),
+  patch: (reference: string, patch: JsonPatchOperation[]) => api<CustomerOrder>(`/orders/${encodeURIComponent(reference)}`, { patch }),
+  /** Every order with this email or phone, newest first. */
+  findByContact: (contact: string) => api<CustomerOrderSummary[]>('/orders', { headers: contactHeader(contact) }),
+  /** The logged-in customer's own orders. */
   mine: () => api<CustomerOrderSummary[]>('/orders'),
 }
 

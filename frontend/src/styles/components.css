@@ -398,6 +398,10 @@
   vertical-align: middle;
 }
 
+.table .mono {
+  white-space: nowrap;
+}
+
 .table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -866,3 +870,4 @@
   padding: 0;
   border: 0;
 }
+
