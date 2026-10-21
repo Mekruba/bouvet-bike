@@ -6,8 +6,8 @@ namespace BouvetBike.Orders.Contracts;
 /// </summary>
 public interface ICapacityService
 {
-    /// <summary>Bookings per date for <paramref name="days"/> days starting at <paramref name="from"/>.</summary>
-    Task<IReadOnlyList<DayCapacityResponse>> GetAsync(DateOnly from, int days, CancellationToken ct);
+    /// <summary>Bookings per date, starting at <see cref="CapacityQuery.From"/> (default today).</summary>
+    Task<IReadOnlyList<DayCapacityResponse>> GetAsync(CapacityQuery query, CancellationToken ct);
 
     /// <param name="ignoreOrderId">An order being moved to a new date, so it doesn't count against itself.</param>
     /// <exception cref="Domain.DueDateFullException">The date is full; carries the next available date.</exception>

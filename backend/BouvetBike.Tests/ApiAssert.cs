@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BouvetBike.Tests;
 
@@ -9,6 +10,36 @@ namespace BouvetBike.Tests;
 public static class ApiAssert
 {
     public const string JsonPatchMediaType = "application/json-patch+json";
+
+    /// <summary>Same JSON settings as the API (web defaults, enums as strings).</summary>
+    public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
+
+    public static Task<HttpResponseMessage> PostJsonAsync<T>(this HttpClient client, string url, T body) =>
+        client.PostAsJsonAsync(url, body, Json);
+
+    /// <summary>GET with extra request headers, e.g. the order contact header.</summary>
+    public static Task<HttpResponseMessage> GetAsync(this HttpClient client, string url, params (string Name, string Value)[] headers)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        foreach (var (name, value) in headers)
+        {
+            request.Headers.Add(name, value);
+        }
+
+        return client.SendAsync(request);
+    }
+
+    /// <summary>PATCH with a JSON Patch document and extra request headers.</summary>
+    public static Task<HttpResponseMessage> PatchJsonAsync(this HttpClient client, string url, string patchDocument, params (string Name, string Value)[] headers)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, url) { Content = new StringContent(patchDocument, Encoding.UTF8, JsonPatchMediaType) };
+        foreach (var (name, value) in headers)
+        {
+            request.Headers.Add(name, value);
+        }
+
+        return client.SendAsync(request);
+    }
 
     /// <summary>Sends <paramref name="patchDocument"/> (a JSON array of RFC 6902 operations) as a PATCH.</summary>
     public static Task<HttpResponseMessage> PatchJsonAsync(this HttpClient client, string url, string patchDocument, string mediaType = JsonPatchMediaType) =>
@@ -40,7 +71,7 @@ public static class ApiAssert
     public static async Task<T> ReadAs<T>(this HttpResponseMessage response, HttpStatusCode expected = HttpStatusCode.OK)
     {
         await response.AssertStatus(expected);
-        return (await response.Content.ReadFromJsonAsync<T>())!;
+        return (await response.Content.ReadFromJsonAsync<T>(Json))!;
     }
 
     // Overloads so a request can be awaited and asserted in one expression.

@@ -1,4 +1,5 @@
 using BouvetBike.Shared.Contracts;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 
 namespace BouvetBike.Orders.Contracts;
 
@@ -9,21 +10,21 @@ public interface IAdminOrderService
 
     Task<AdminOrderResponse> GetAsync(Guid id, CancellationToken ct);
 
-    /// <summary>Updates details and service. Re-checks capacity if the due date changes.</summary>
-    Task<AdminOrderResponse> UpdateAsync(Guid id, UpdateOrderRequest request, CancellationToken ct);
+    /// <summary>
+    /// JSON Patch on <see cref="AdminOrderPatch"/>. Re-checks capacity if the due date changes;
+    /// setting <c>/discountCode</c> redeems it. Atomic: if anything fails, nothing changes.
+    /// </summary>
+    Task<AdminOrderResponse> PatchAsync(Guid id, JsonPatchDocument<AdminOrderPatch> patch, CancellationToken ct);
 
     Task DeleteAsync(Guid id, CancellationToken ct);
 
-    /// <summary>Records the change, with the current staff user, in the status history.</summary>
-    Task<AdminOrderResponse> ChangeStatusAsync(Guid id, ChangeStatusRequest request, CancellationToken ct);
+    /// <summary>Records a status change, by the current staff user, in the order's history.</summary>
+    /// <exception cref="Shared.Domain.DomainException">The transition isn't allowed from the current status.</exception>
+    Task<StatusChangeResponse> AddStatusChangeAsync(Guid id, ChangeStatusRequest request, CancellationToken ct);
 
-    Task<AdminOrderResponse> UpdateInternalNotesAsync(Guid id, UpdateInternalNotesRequest request, CancellationToken ct);
+    Task<IReadOnlyList<StatusChangeResponse>> GetStatusChangesAsync(Guid id, CancellationToken ct);
 
-    Task<AdminOrderResponse> ApplyDiscountAsync(Guid id, ApplyDiscountRequest request, CancellationToken ct);
+    Task<AdminOrderResponse> SetPriceOverrideAsync(Guid id, OverridePriceRequest request, CancellationToken ct);
 
-    Task<AdminOrderResponse> RemoveDiscountAsync(Guid id, CancellationToken ct);
-
-    Task<AdminOrderResponse> OverridePriceAsync(Guid id, OverridePriceRequest request, CancellationToken ct);
-
-    Task<AdminOrderResponse> ClearPriceOverrideAsync(Guid id, CancellationToken ct);
+    Task ClearPriceOverrideAsync(Guid id, CancellationToken ct);
 }

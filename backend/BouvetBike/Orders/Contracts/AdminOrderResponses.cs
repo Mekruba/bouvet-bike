@@ -41,4 +41,4 @@ public sealed record AdminOrderResponse(
 public sealed record PriceOverrideResponse(MoneyResponse Amount, string Reason, string? OverriddenBy, DateTime OverriddenAt);
 
 /// <param name="ChangedBy">Staff member's name; null for system or guest changes.</param>
-public sealed record StatusChangeResponse(OrderStatus From, OrderStatus To, string? ChangedBy, DateTime ChangedAt, string? Reason);
+public sealed record StatusChangeResponse(Guid Id, OrderStatus From, OrderStatus To, string? ChangedBy, DateTime ChangedAt, string? Reason);
