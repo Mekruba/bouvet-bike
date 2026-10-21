@@ -120,7 +120,7 @@ public class AdminOrderQueryApiTests(ApiFactory factory) : IClassFixture<ApiFact
 
         var result = await _mechanic.Search($"search={brand}&dueFrom={day:yyyy-MM-dd}&dueTo={day.AddDays(1):yyyy-MM-dd}");
 
-        Assert.Equal([first.Reference, last.Reference], result.Items.Select(o => o.Reference).Order());
+        Assert.Equal(new[] { first.Reference, last.Reference }.Order(), result.Items.Select(o => o.Reference).Order());
     }
 
     [Fact]

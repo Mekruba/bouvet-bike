@@ -21,12 +21,14 @@ public class ApiExceptionHandler(IProblemDetailsService problemDetails) : IExcep
         {
             NotFoundException => Problem(StatusCodes.Status404NotFound, "Not found", exception),
             ConflictException => Problem(StatusCodes.Status409Conflict, "Conflict", exception),
-            UnprocessableException unprocessable => new HttpValidationProblemDetails(unprocessable.Errors.ToDictionary())
-            {
-                Status = StatusCodes.Status422UnprocessableEntity,
-                Title = "Unprocessable request",
-                Detail = exception.Message,
-            },
+            UnprocessableException unprocessable => WithExtensions(
+                new HttpValidationProblemDetails(unprocessable.Errors.ToDictionary())
+                {
+                    Status = StatusCodes.Status422UnprocessableEntity,
+                    Title = "Unprocessable request",
+                    Detail = exception.Message,
+                },
+                unprocessable.Details),
             DomainException domain => WithExtensions(Problem(StatusCodes.Status400BadRequest, "Business rule violated", exception), domain.Details),
             BadHttpRequestException badRequest => Problem(badRequest.StatusCode, "Bad request", exception),
             _ => null,

@@ -56,7 +56,7 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         catch (DomainException ex)
         {
             // RFC 5789: a patch that would leave the resource invalid is 422, not 400.
-            throw new UnprocessableException(ex.Message);
+            throw UnprocessableException.From(ex);
         }
 
         if (model.IsActive)

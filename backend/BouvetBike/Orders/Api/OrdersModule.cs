@@ -1,6 +1,7 @@
 using BouvetBike.Orders.Application;
 using BouvetBike.Orders.Contracts;
 using BouvetBike.Shared.Api;
+using BouvetBike.Shared.Contracts;
 using BouvetBike.Users;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
@@ -15,6 +16,7 @@ public static class OrdersModule
         services.AddOptions<CapacityOptions>().BindConfiguration(CapacityOptions.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddScoped<ICapacityService, CapacityService>();
         services.AddScoped<ICustomerOrderService, CustomerOrderService>();
+        services.AddScoped<IAdminOrderService, AdminOrderService>();
         return services;
     }
 
@@ -28,6 +30,13 @@ public static class OrdersModule
         orders.MapGet("/", GetMine).RequireAuthorization(Policies.Customer);
         orders.MapGet("/{reference}", GetByReference).WithName(nameof(GetByReference));
         orders.MapPatch("/{reference}", Patch).Accepts<JsonPatchDocument<CustomerOrderPatch>>(JsonPatch.MediaType);
+
+        // The staff view of the same orders: separate routes, staff-only.
+        var admin = api.MapGroup("/admin/orders").WithTags("Admin orders").RequireAuthorization(Policies.Staff);
+        admin.MapGet("/", Search);
+        admin.MapGet("/{id:guid}", GetForStaff);
+        admin.MapPatch("/{id:guid}", PatchForStaff).Accepts<JsonPatchDocument<AdminOrderPatch>>(JsonPatch.MediaType);
+        admin.MapDelete("/{id:guid}", Delete).RequireAuthorization(Policies.Admin);
 
         return api;
     }
@@ -72,5 +81,29 @@ public static class OrdersModule
         }
 
         return TypedResults.Ok(await orders.PatchAsync(reference, contact, patch, ct));
+    }
+
+    private static async Task<Ok<PagedResponse<AdminOrderSummaryResponse>>> Search(
+        [AsParameters] AdminOrderQuery query, IAdminOrderService orders, CancellationToken ct) =>
+        TypedResults.Ok(await orders.SearchAsync(query, ct));
+
+    private static async Task<Ok<AdminOrderResponse>> GetForStaff(Guid id, IAdminOrderService orders, CancellationToken ct) =>
+        TypedResults.Ok(await orders.GetAsync(id, ct));
+
+    private static async Task<Results<Ok<AdminOrderResponse>, ProblemHttpResult>> PatchForStaff(
+        Guid id, JsonPatchDocument<AdminOrderPatch> patch, IAdminOrderService orders, CancellationToken ct)
+    {
+        if (JsonPatch.FindMalformedOperation(patch) is { } problem)
+        {
+            return problem;
+        }
+
+        return TypedResults.Ok(await orders.PatchAsync(id, patch, ct));
+    }
+
+    private static async Task<NoContent> Delete(Guid id, IAdminOrderService orders, CancellationToken ct)
+    {
+        await orders.DeleteAsync(id, ct);
+        return TypedResults.NoContent();
     }
 }

@@ -39,7 +39,7 @@ public class AdminOrderUpdateApiTests(ApiFactory factory) : IClassFixture<ApiFac
 
         Assert.Equal(new ContactResponse("Ola Nordmann", "ola@example.com", "+4740000000"), order.Contact);
         Assert.Equal(("Giant", null as string), (order.BikeBrand, order.BikeModel));
-        Assert.Equal(order, await _mechanic.GetAdminOrder(id));
+        ApiAssert.AssertSameJson(order, await _mechanic.GetAdminOrder(id));
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class AdminOrderUpdateApiTests(ApiFactory factory) : IClassFixture<ApiFac
 
         await Patch(id, patch).AssertProblem(HttpStatusCode.UnprocessableEntity);
 
-        Assert.Equal(before, await _mechanic.GetAdminOrder(id));
+        ApiAssert.AssertSameJson(before, await _mechanic.GetAdminOrder(id));
     }
 
     [Fact]

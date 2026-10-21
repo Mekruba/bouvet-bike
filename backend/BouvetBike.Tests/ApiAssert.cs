@@ -68,6 +68,13 @@ public static class ApiAssert
             problem.GetProperty("errors").EnumerateObject(),
             error => error.Name.Equals(field, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Compares two responses by their JSON. Use for records that contain lists: record equality compares
+    /// lists by reference, so two separately loaded but identical responses would never be equal.
+    /// </summary>
+    public static void AssertSameJson<T>(T expected, T actual) =>
+        Assert.Equal(JsonSerializer.Serialize(expected, Json), JsonSerializer.Serialize(actual, Json));
+
     public static async Task<T> ReadAs<T>(this HttpResponseMessage response, HttpStatusCode expected = HttpStatusCode.OK)
     {
         await response.AssertStatus(expected);

@@ -21,7 +21,7 @@ public class MaintenanceOrderConfiguration : IEntityTypeConfiguration<Maintenanc
 
         builder.ComplexProperty(o => o.Contact, contact =>
         {
-            contact.Property(c => c.Name).HasMaxLength(ContactInfo.NameMaxLength).HasColumnName("ContactName");
+            contact.Property(c => c.Name).HasMaxLength(ContactInfo.NameMaxLength).HasColumnName("ContactName").UseCollation("NOCASE");
             contact.Property(c => c.Email).HasColumnName("ContactEmail");
             contact.Property(c => c.Phone).HasColumnName("ContactPhone");
         });

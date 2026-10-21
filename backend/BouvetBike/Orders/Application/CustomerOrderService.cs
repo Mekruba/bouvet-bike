@@ -1,5 +1,4 @@
 using BouvetBike.Catalog.Contracts;
-using BouvetBike.Catalog.Domain;
 using BouvetBike.Discounts.Contracts;
 using BouvetBike.Orders.Contracts;
 using BouvetBike.Orders.Domain;
@@ -22,7 +21,7 @@ public sealed class CustomerOrderService(
 {
     public async Task<OrderPriceResponse> QuoteAsync(PriceQuoteQuery query, CancellationToken ct)
     {
-        var service = await GetOrderableServiceAsync(query.ServiceTypeId!.Value, ct);
+        var service = await catalog.GetOrderableServiceAsync(query.ServiceTypeId!.Value, ct);
         var discount = query.DiscountCode is { Length: > 0 } code ? await discounts.PreviewAsync(code, ct) : null;
 
         var discountAmount = discount?.CalculateFor(service.BasePrice) ?? Money.Zero();
@@ -37,7 +36,7 @@ public sealed class CustomerOrderService(
     public async Task<CustomerOrderResponse> PlaceAsync(PlaceOrderRequest request, CancellationToken ct)
     {
         var contact = new ContactInfo(request.Name, Email.Create(request.Email), PhoneNumber.Create(request.Phone));
-        var service = await GetOrderableServiceAsync(request.ServiceTypeId!.Value, ct);
+        var service = await catalog.GetOrderableServiceAsync(request.ServiceTypeId!.Value, ct);
 
         // The domain checks the service and the date; capacity spans orders, so it's checked here.
         var order = MaintenanceOrder.Place(
@@ -72,7 +71,7 @@ public sealed class CustomerOrderService(
         catch (DomainException ex)
         {
             // RFC 5789: a patch that can't be applied in the resource's current state is 422, not 400.
-            throw new UnprocessableException(ex.Message);
+            throw UnprocessableException.From(ex);
         }
 
         await db.SaveChangesAsync(ct);
@@ -130,35 +129,16 @@ public sealed class CustomerOrderService(
         }
     }
 
-    /// <summary>An unknown service in a request body is a bad request (400), not a missing resource (404).</summary>
-    private async Task<ServiceType> GetOrderableServiceAsync(Guid serviceTypeId, CancellationToken ct)
-    {
-        try
-        {
-            var service = await catalog.GetForOrderAsync(serviceTypeId, ct);
-            return service.IsActive ? service : throw new DomainException($"Service '{service.Name}' is not available.");
-        }
-        catch (NotFoundException)
-        {
-            throw new DomainException($"Service type {serviceTypeId} does not exist.");
-        }
-    }
-
     private static CustomerOrderResponse ToResponse(MaintenanceOrder order) => new(
         order.Reference.Value,
         order.Status,
-        new ContactResponse(order.Contact.Name, order.Contact.Email.Value, order.Contact.Phone.Value),
+        order.Contact.ToContactResponse(),
         order.BikeBrand,
         order.BikeModel,
         order.ServiceName,
         order.DueDate,
         order.CustomerNotes,
         CanEditNotes: order.Status == OrderStatus.New,
-        new OrderPriceResponse(
-            MoneyResponse.From(order.ServicePrice),
-            order.Discount?.Code,
-            MoneyResponse.From(order.DiscountAmount),
-            MoneyResponse.From(order.Total),
-            IsOverridden: order.PriceOverride is not null),
+        order.ToPriceResponse(),
         order.CreatedAt);
 }
