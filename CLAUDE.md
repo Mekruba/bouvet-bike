@@ -12,7 +12,7 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 ## Layout
 
 - `backend/BouvetBike`: one project, **modules by business area**: `Orders/`, `Catalog/`, `Discounts/`, `Users/` (Identity: `ApplicationUser`, `Roles`), `Shared/`. Inside a module, only the layer folders it needs:
-  - `Api/`: minimal API route groups as `Map<Feature>Endpoints(this RouteGroupBuilder)` extensions, registered under `/api` in `Program.cs`. Keep endpoints thin.
+  - `Api/`: `<Module>Module.cs` with `Add<Module>Module(this IServiceCollection)` (DI registrations) and `Map<Module>Endpoints(this RouteGroupBuilder)`, both called from `Program.cs`. Endpoints are private static handlers returning `TypedResults` (`Results<…>` unions); they only check HTTP-level things and call one service method.
   - `Contracts/`: the module's public surface. Request/response records (DataAnnotations validation, max lengths from domain constants) and service interfaces (`ICustomerOrderService`, `IAdminOrderService`, `ICapacityService`, `ICatalogService`, `IDiscountService`, `IAccountService`; `ICurrentUser` in Shared). Services take request records and return response records. Required value types are nullable with `[Required]` (`Guid?`, `DateOnly?`) so a missing field is a validation error, not a default value.
   - `Application/`: implementations of the `Contracts/` interfaces, and their options. Private to the module. Gets the caller via `ICurrentUser`, never `HttpContext`.
   - `Domain/`: aggregates, value objects, rules. Throw `DomainException` on rule violations. **No EF Core, ASP.NET, Identity, or other `Api/Contracts/Application/Persistence` references.**
@@ -43,7 +43,7 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 ## API conventions (REST + RFC 6902)
 
 - Plural kebab-case resources, no verbs in URLs. `POST` → 201 + `Location`; `PATCH` → 200 + resource; `DELETE` → 204; unsupported method → 405.
-- Updates are `PATCH` with JSON Patch (`application/json-patch+json`, `Microsoft.AspNetCore.JsonPatch.SystemTextJson`). Apply the patch to a `…Patch` model in `Contracts/`, validate it, then call the domain. Never patch an entity directly.
+- Updates are `PATCH` with JSON Patch (`application/json-patch+json`, `Microsoft.AspNetCore.JsonPatch.SystemTextJson`). Apply the patch to a `…Patch` model in `Contracts/`, validate it, then call the domain. Never patch an entity directly. Endpoint: `.Accepts<JsonPatchDocument<TPatch>>(JsonPatch.MediaType)` (gives 415) and `JsonPatch.FindMalformedOperation` (400). Service: build the model from the entity, `patch.ApplyAndValidate(model)` (409/422), then call domain methods, turning a `DomainException` into `UnprocessableException`.
 - PATCH errors per RFC 5789: 400 malformed, 415 wrong media type, 409 failed `test` op (`ConflictException`), 422 bad path or invalid result (`UnprocessableException` with field errors). The full table is in `docs/architecture.md`.
 
 ## Testing (test-driven)
