@@ -13,19 +13,19 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 
 - `backend/BouvetBike`: one project, **modules by business area**: `Orders/`, `Catalog/`, `Discounts/`, `Users/` (Identity: `ApplicationUser`, `Roles`), `Shared/`. Inside a module, only the layer folders it needs:
   - `Api/`: minimal API route groups as `Map<Feature>Endpoints(this RouteGroupBuilder)` extensions, registered under `/api` in `Program.cs`. Keep endpoints thin.
-  - `Contracts/`: request/response DTOs (DataAnnotations validation).
-  - `Application/`: use cases that coordinate several things (capacity check, discount redemption, save).
+  - `Contracts/`: the module's public surface. Request/response records (DataAnnotations validation, max lengths from domain constants) and service interfaces (`ICustomerOrderService`, `IAdminOrderService`, `ICapacityService`, `ICatalogService`, `IDiscountService`, `IAccountService`; `ICurrentUser` in Shared). Services take request records and return response records. Required value types are nullable with `[Required]` (`Guid?`, `DateOnly?`) so a missing field is a validation error, not a default value.
+  - `Application/`: implementations of the `Contracts/` interfaces, and their options. Private to the module. Gets the caller via `ICurrentUser`, never `HttpContext`.
   - `Domain/`: aggregates, value objects, rules. Throw `DomainException` on rule violations. **No EF Core, ASP.NET, Identity, or other `Api/Contracts/Application/Persistence` references.**
   - `Persistence/`: `IEntityTypeConfiguration<T>` per type (picked up automatically, no attributes on domain types) and seed data.
-  - `Shared/`: `Domain/` (Entity, AggregateRoot, DomainException, Guard, Money, Email, PhoneNumber), `Persistence/` (the single `AppDbContext`, converters, seeding), `Api/` (error handling, health).
-  - Module dependencies point one way: `Orders` → `Catalog`, `Discounts`. `Shared.Domain` depends on no module. All of this is enforced by `ArchitectureTests`; add new modules to its `Modules` list.
+  - `Shared/`: `Domain/` (Entity, AggregateRoot, DomainException, Guard, Money, Email, PhoneNumber), `Contracts/` (`MoneyResponse`, `PagedResponse<T>`, `ICurrentUser`), `Application/` (`NotFoundException`), `Persistence/` (the single `AppDbContext`, converters, seeding), `Api/` (`ApiExceptionHandler`, health).
+  - Module dependencies point one way: `Orders` → `Catalog`, `Discounts`. Other modules may use only a module's `Contracts` and `Domain`, never its `Application`, `Persistence` or `Api`. `Shared.Domain` depends on no module. All of this is enforced by `ArchitectureTests`; add new modules to its `Modules` list.
 - `backend/BouvetBike.Tests`: xUnit, with folders mirroring the modules. Domain unit tests, `PersistenceTests` (EF round-trips), API integration tests via `ApiFactory` (WebApplicationFactory + temp SQLite file per fixture).
 - `frontend/src`: `pages/` per route, `api/client.ts` fetch wrapper (`api<T>()`, throws `ApiError` carrying ProblemDetails).
 
 ## Conventions and gotchas
 
 - Validation uses .NET 10 `AddValidation()` + DataAnnotations on DTOs. **Request types must be declared in their own files under a namespace.** Types declared in `Program.cs` are silently not validated.
-- Errors are RFC 7807 ProblemDetails. Business rule violations: throw `DomainException` in the domain; `DomainExceptionHandler` turns it into a 400 with `detail`. Input validation failures: 400 with `errors`. The frontend `ApiError` reads both.
+- Errors are RFC 7807 ProblemDetails. Business rule violations: throw `DomainException` in the domain; `ApiExceptionHandler` turns it into a 400 with `detail` (plus any `Details` as extra fields); `NotFoundException` becomes a 404. Input validation failures: 400 with `errors`. The frontend `ApiError` reads both.
 - Frontend calls relative `/api/...` paths; Vite proxies to the backend. Don't hardcode backend URLs.
 - Keep docs in `docs/` current when making architectural decisions; log notable AI interactions in `docs/ai-workflow.md`.
 
