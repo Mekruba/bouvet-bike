@@ -1,4 +1,4 @@
-namespace BouvetBike.Endpoints;
+namespace BouvetBike.Shared.Api;
 
 public static class HealthEndpoints
 {

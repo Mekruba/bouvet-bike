@@ -1,5 +1,5 @@
-using BouvetBike.Endpoints;
-using BouvetBike.Infrastructure;
+using BouvetBike.Shared.Api;
+using BouvetBike.Shared.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -9,10 +9,14 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddValidation();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Resolved lazily so tests can override ConnectionStrings:Default.
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-    options.UseSqlite(sp.GetRequiredService<IConfiguration>().GetConnectionString("Default")));
+    options
+        .UseSqlite(sp.GetRequiredService<IConfiguration>().GetConnectionString("Default"))
+        .UseSeeding(DatabaseSeeder.Seed)
+        .UseAsyncSeeding(DatabaseSeeder.SeedAsync));
 
 var app = builder.Build();
 

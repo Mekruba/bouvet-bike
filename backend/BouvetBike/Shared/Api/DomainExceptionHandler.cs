@@ -1,8 +1,8 @@
-using BouvetBike.Domain;
+using BouvetBike.Shared.Domain;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BouvetBike.Endpoints;
+namespace BouvetBike.Shared.Api;
 
 /// <summary>Turns <see cref="DomainException"/> into a 400 ProblemDetails response.</summary>
 public class DomainExceptionHandler(IProblemDetailsService problemDetails) : IExceptionHandler

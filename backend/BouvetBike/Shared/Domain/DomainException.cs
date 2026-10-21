@@ -1,7 +1,7 @@
-namespace BouvetBike.Domain;
+namespace BouvetBike.Shared.Domain;
 
 /// <summary>
 /// Thrown when a business rule is violated. Mapped to a 400 ProblemDetails response
-/// by <see cref="Endpoints.DomainExceptionHandler"/>.
+/// by <c>DomainExceptionHandler</c>.
 /// </summary>
 public class DomainException(string message) : Exception(message);
