@@ -38,6 +38,14 @@ public static class OrdersModule
         admin.MapPatch("/{id:guid}", PatchForStaff).Accepts<JsonPatchDocument<AdminOrderPatch>>(JsonPatch.MediaType);
         admin.MapDelete("/{id:guid}", Delete).RequireAuthorization(Policies.Admin);
 
+        // The lifecycle: status changes are a history sub-collection; the price override is an Admin-only singleton.
+        admin.MapGet("/{id:guid}/status-changes", GetStatusChanges);
+        admin.MapGet("/{id:guid}/status-changes/{changeId:guid}", GetStatusChange).WithName(nameof(GetStatusChange));
+        admin.MapPost("/{id:guid}/status-changes", AddStatusChange);
+        admin.MapGet("/{id:guid}/price-override", GetPriceOverride).WithName(nameof(GetPriceOverride));
+        admin.MapPut("/{id:guid}/price-override", SetPriceOverride).RequireAuthorization(Policies.Admin);
+        admin.MapDelete("/{id:guid}/price-override", ClearPriceOverride).RequireAuthorization(Policies.Admin);
+
         return api;
     }
 
@@ -104,6 +112,38 @@ public static class OrdersModule
     private static async Task<NoContent> Delete(Guid id, IAdminOrderService orders, CancellationToken ct)
     {
         await orders.DeleteAsync(id, ct);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<Ok<IReadOnlyList<StatusChangeResponse>>> GetStatusChanges(Guid id, IAdminOrderService orders, CancellationToken ct) =>
+        TypedResults.Ok(await orders.GetStatusChangesAsync(id, ct));
+
+    private static async Task<Ok<StatusChangeResponse>> GetStatusChange(Guid id, Guid changeId, IAdminOrderService orders, CancellationToken ct) =>
+        TypedResults.Ok(await orders.GetStatusChangeAsync(id, changeId, ct));
+
+    private static async Task<CreatedAtRoute<StatusChangeResponse>> AddStatusChange(
+        Guid id, ChangeStatusRequest request, IAdminOrderService orders, CancellationToken ct)
+    {
+        var change = await orders.AddStatusChangeAsync(id, request, ct);
+        return TypedResults.CreatedAtRoute(change, nameof(GetStatusChange), new { id, changeId = change.Id });
+    }
+
+    private static async Task<Ok<PriceOverrideResponse>> GetPriceOverride(Guid id, IAdminOrderService orders, CancellationToken ct) =>
+        TypedResults.Ok(await orders.GetPriceOverrideAsync(id, ct));
+
+    /// <summary>RFC 9110: 201 when the override is created, 200 when an existing one is replaced.</summary>
+    private static async Task<Results<CreatedAtRoute<PriceOverrideResponse>, Ok<PriceOverrideResponse>>> SetPriceOverride(
+        Guid id, OverridePriceRequest request, IAdminOrderService orders, CancellationToken ct)
+    {
+        var (priceOverride, created) = await orders.SetPriceOverrideAsync(id, request, ct);
+        return created
+            ? TypedResults.CreatedAtRoute(priceOverride, nameof(GetPriceOverride), new { id })
+            : TypedResults.Ok(priceOverride);
+    }
+
+    private static async Task<NoContent> ClearPriceOverride(Guid id, IAdminOrderService orders, CancellationToken ct)
+    {
+        await orders.ClearPriceOverrideAsync(id, ct);
         return TypedResults.NoContent();
     }
 }

@@ -17,6 +17,7 @@ public sealed class AdminOrderService(
     ICatalogService catalog,
     IDiscountService discounts,
     ICapacityService capacity,
+    ICurrentUser currentUser,
     TimeProvider clock) : IAdminOrderService
 {
     public async Task<PagedResponse<AdminOrderSummaryResponse>> SearchAsync(AdminOrderQuery query, CancellationToken ct)
@@ -126,23 +127,56 @@ public sealed class AdminOrderService(
         await db.SaveChangesAsync(ct);
     }
 
-    public Task<StatusChangeResponse> AddStatusChangeAsync(Guid id, ChangeStatusRequest request, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public async Task<StatusChangeResponse> AddStatusChangeAsync(Guid id, ChangeStatusRequest request, CancellationToken ct)
+    {
+        var order = await LoadAsync(id, ct);
+        order.ChangeStatus(request.Status!.Value, currentUser.Id, clock, request.Reason);
+        await db.SaveChangesAsync(ct);
 
-    public Task<IReadOnlyList<StatusChangeResponse>> GetStatusChangesAsync(Guid id, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+        var names = await UserNamesAsync(order, ct);
+        return ToResponse(order.StatusHistory[^1], names);
+    }
 
-    public Task<StatusChangeResponse> GetStatusChangeAsync(Guid id, Guid changeId, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public async Task<IReadOnlyList<StatusChangeResponse>> GetStatusChangesAsync(Guid id, CancellationToken ct)
+    {
+        var order = await LoadAsync(id, ct);
+        var names = await UserNamesAsync(order, ct);
+        return order.StatusHistory.OrderBy(c => c.ChangedAt).Select(c => ToResponse(c, names)).ToList();
+    }
 
-    public Task<PriceOverrideResponse> GetPriceOverrideAsync(Guid id, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public async Task<StatusChangeResponse> GetStatusChangeAsync(Guid id, Guid changeId, CancellationToken ct)
+    {
+        var order = await LoadAsync(id, ct);
+        var change = order.StatusHistory.SingleOrDefault(c => c.Id == changeId)
+            ?? throw new NotFoundException($"Status change {changeId} was not found on order {id}.");
+        return ToResponse(change, await UserNamesAsync(order, ct));
+    }
 
-    public Task<(PriceOverrideResponse Override, bool Created)> SetPriceOverrideAsync(Guid id, OverridePriceRequest request, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public async Task<PriceOverrideResponse> GetPriceOverrideAsync(Guid id, CancellationToken ct)
+    {
+        var order = await LoadAsync(id, ct);
+        var priceOverride = order.PriceOverride ?? throw new NotFoundException($"Order {id} has no price override.");
+        return ToResponse(priceOverride, await UserNamesAsync(order, ct));
+    }
 
-    public Task ClearPriceOverrideAsync(Guid id, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public async Task<(PriceOverrideResponse Override, bool Created)> SetPriceOverrideAsync(
+        Guid id, OverridePriceRequest request, CancellationToken ct)
+    {
+        var order = await LoadAsync(id, ct);
+        var created = order.PriceOverride is null;
+        var staffId = currentUser.Id ?? throw new InvalidOperationException("Requires a logged-in staff user.");
+
+        order.OverridePrice(new Money(request.Amount!.Value), request.Reason, staffId, clock);
+        await db.SaveChangesAsync(ct);
+        return (ToResponse(order.PriceOverride!, await UserNamesAsync(order, ct)), created);
+    }
+
+    public async Task ClearPriceOverrideAsync(Guid id, CancellationToken ct)
+    {
+        var order = await LoadAsync(id, ct);
+        order.ClearPriceOverride(clock);
+        await db.SaveChangesAsync(ct);
+    }
 
     /// <summary>
     /// Reference, email and phone match exactly (they're value objects, stored whole); name and bike brand
@@ -220,15 +254,29 @@ public sealed class AdminOrderService(
         }
     }
 
-    private async Task<AdminOrderResponse> ToResponseAsync(MaintenanceOrder order, CancellationToken ct)
+    /// <summary>Names of the staff who changed status or overrode the price, for display.</summary>
+    private async Task<Dictionary<Guid, string>> UserNamesAsync(MaintenanceOrder order, CancellationToken ct)
     {
         var userIds = order.StatusHistory.Select(c => c.ChangedById)
             .Append(order.PriceOverride?.OverriddenById)
             .OfType<Guid>()
             .Distinct()
             .ToList();
-        var names = await db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Name, ct);
-        string? NameOf(Guid? id) => id is { } userId ? names.GetValueOrDefault(userId) : null;
+        return await db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Name, ct);
+    }
+
+    private static StatusChangeResponse ToResponse(OrderStatusChange change, Dictionary<Guid, string> names) =>
+        new(change.Id, change.From, change.To, NameOf(change.ChangedById, names), change.ChangedAt, change.Reason);
+
+    private static PriceOverrideResponse ToResponse(PriceOverride priceOverride, Dictionary<Guid, string> names) =>
+        new(MoneyResponse.From(priceOverride.Amount), priceOverride.Reason, NameOf(priceOverride.OverriddenById, names), priceOverride.OverriddenAt);
+
+    private static string? NameOf(Guid? userId, Dictionary<Guid, string> names) =>
+        userId is { } id ? names.GetValueOrDefault(id) : null;
+
+    private async Task<AdminOrderResponse> ToResponseAsync(MaintenanceOrder order, CancellationToken ct)
+    {
+        var names = await UserNamesAsync(order, ct);
 
         return new AdminOrderResponse(
             order.Id,
@@ -245,14 +293,8 @@ public sealed class AdminOrderService(
             order.CustomerNotes,
             order.InternalNotes,
             order.ToPriceResponse(),
-            order.PriceOverride is { } priceOverride
-                ? new PriceOverrideResponse(
-                    MoneyResponse.From(priceOverride.Amount), priceOverride.Reason, NameOf(priceOverride.OverriddenById), priceOverride.OverriddenAt)
-                : null,
-            order.StatusHistory
-                .OrderBy(c => c.ChangedAt)
-                .Select(c => new StatusChangeResponse(c.Id, c.From, c.To, NameOf(c.ChangedById), c.ChangedAt, c.Reason))
-                .ToList(),
+            order.PriceOverride is { } priceOverride ? ToResponse(priceOverride, names) : null,
+            order.StatusHistory.OrderBy(c => c.ChangedAt).Select(c => ToResponse(c, names)).ToList(),
             order.CreatedAt,
             order.UpdatedAt);
     }
