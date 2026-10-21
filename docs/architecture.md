@@ -171,7 +171,7 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `PATCH /api/service-types/{id}` | Admin | `PatchAsync`; paths `/name`, `/description`, `/price`, `/estimatedMinutes`, `/isActive` |
 | `DELETE /api/service-types/{id}` | | 405: orders reference service types, so retire one with `PATCH /isActive false` |
 
-**Orders, customer side** (capacity, quotes, placing and getting are implemented, test-first: `CapacityApiTests`, `PriceQuoteApiTests`, `PlaceOrderApiTests`; notes and "my orders" are next):
+**Orders, customer side** (implemented test-first: `CapacityApiTests`, `PriceQuoteApiTests`, `PlaceOrderApiTests`, `CustomerOrderApiTests`):
 
 | Route | Access | Service method |
 |---|---|---|
