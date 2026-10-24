@@ -1,5 +1,6 @@
 namespace BouvetBike.Shared.Api;
 
+/// <summary>HTTP caching rules for endpoints.</summary>
 public static class CacheControl
 {
     /// <summary>

@@ -5,8 +5,10 @@ namespace BouvetBike.Shared.Persistence;
 
 // Conversions registered as conventions in AppDbContext. Single-value value objects are stored as plain strings.
 
+/// <summary>Stores an <see cref="Email"/> as its normalized address.</summary>
 public class EmailConverter() : ValueConverter<Email, string>(v => v.Value, v => Email.Create(v));
 
+/// <summary>Stores a <see cref="PhoneNumber"/> in E.164 format.</summary>
 public class PhoneNumberConverter() : ValueConverter<PhoneNumber, string>(v => v.Value, v => PhoneNumber.Create(v));
 
 /// <summary>

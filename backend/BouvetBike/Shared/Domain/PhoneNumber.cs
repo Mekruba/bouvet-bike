@@ -11,8 +11,14 @@ public sealed record PhoneNumber
 
     public string Value { get; }
 
+    /// <summary>Only through <see cref="Create"/>, which validates.</summary>
     private PhoneNumber(string value) => Value = value;
 
+    /// <summary>
+    /// Parses a number written the way people type it (spaces, dashes, dots and brackets allowed) into E.164.
+    /// A country code is given with <c>+</c> or <c>00</c>; without one, the number must be a Norwegian 8-digit number.
+    /// </summary>
+    /// <exception cref="DomainException">Missing, contains other characters, or has the wrong number of digits.</exception>
     public static PhoneNumber Create(string? value)
     {
         var raw = value?.Trim();
@@ -45,5 +51,6 @@ public sealed record PhoneNumber
         return new PhoneNumber("+" + (hasCountryCode ? digits : DefaultCountryCode + digits));
     }
 
+    /// <summary>The number in E.164 format.</summary>
     public override string ToString() => Value;
 }

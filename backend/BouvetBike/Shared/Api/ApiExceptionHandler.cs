@@ -16,6 +16,8 @@ namespace BouvetBike.Shared.Api;
 /// </summary>
 public class ApiExceptionHandler(IProblemDetailsService problemDetails) : IExceptionHandler
 {
+    /// <summary>Writes the ProblemDetails response for an expected exception.</summary>
+    /// <returns>True when handled; false lets the next handler (the default 500) take it.</returns>
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken ct)
     {
         ProblemDetails? problem = exception switch
@@ -56,9 +58,11 @@ public class ApiExceptionHandler(IProblemDetailsService problemDetails) : IExcep
         });
     }
 
+    /// <summary>A problem with the exception's message as <c>detail</c>.</summary>
     private static ProblemDetails Problem(int status, string title, Exception exception) =>
         new() { Status = status, Title = title, Detail = exception.Message };
 
+    /// <summary>Adds extra top-level fields to the problem, e.g. <c>nextAvailableDate</c> when a due date is full.</summary>
     private static ProblemDetails WithExtensions(ProblemDetails problem, IReadOnlyDictionary<string, object?> extensions)
     {
         foreach (var (key, value) in extensions)

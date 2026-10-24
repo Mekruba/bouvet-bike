@@ -19,6 +19,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<CapacitySchedule> CapacitySchedules => Set<CapacitySchedule>();
     public DbSet<CapacityOverride> CapacityOverrides => Set<CapacityOverride>();
 
+    /// <summary>
+    /// Storage rules for every property of a type: enums as strings, money with two decimals, timestamps as UTC,
+    /// and the single-value value objects as plain strings.
+    /// </summary>
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Properties<Enum>().HaveConversion<string>().HaveMaxLength(32);
@@ -28,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         configurationBuilder.Properties<PhoneNumber>().HaveConversion<PhoneNumberConverter>().HaveMaxLength(PhoneNumber.MaxLength);
     }
 
+    /// <summary>Maps the Identity tables and every module's types.</summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder); // Identity tables

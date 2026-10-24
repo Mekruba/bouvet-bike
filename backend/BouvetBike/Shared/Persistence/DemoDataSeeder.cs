@@ -9,6 +9,7 @@ namespace BouvetBike.Shared.Persistence;
 /// </summary>
 public static class DemoDataSeeder
 {
+    /// <summary>Adds the demo discount codes that don't exist yet, so it can run on every start.</summary>
     public static async Task SeedAsync(AppDbContext db)
     {
         foreach (var code in DiscountSeed.DemoCodes())

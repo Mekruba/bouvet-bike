@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.JsonPatch.SystemTextJson.Exceptions;
 
 namespace BouvetBike.Shared.Application;
 
+/// <summary>Applying JSON Patch documents to patch models, with RFC 5789 error semantics.</summary>
 public static class JsonPatchExtensions
 {
     /// <summary>
