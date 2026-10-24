@@ -6,6 +6,9 @@ namespace BouvetBike.Users.Contracts;
 /// </summary>
 public interface ICustomerAccountEvents
 {
-    /// <summary>A customer account was created. Called before the response, in the same request.</summary>
-    Task CustomerRegisteredAsync(Guid customerId, string email, CancellationToken ct);
+    /// <summary>
+    /// A customer confirmed their email, so the address is proven to be theirs. Called in the same request,
+    /// before the response.
+    /// </summary>
+    Task CustomerEmailConfirmedAsync(Guid customerId, string email, CancellationToken ct);
 }

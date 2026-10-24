@@ -12,30 +12,33 @@ public sealed class AccountService(
     ICurrentUser currentUser,
     IEnumerable<ICustomerAccountEvents> accountEvents) : IAccountService
 {
-    public async Task<CurrentUserResponse> RegisterAsync(RegisterRequest request, CancellationToken ct)
+    public async Task<RegistrationResponse> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var user = NewUser(request.Name, request.Email, NormalizePhone(request.Phone));
         await CreateAsync(user, request.Password, Roles.Customer);
-        foreach (var handler in accountEvents)
-        {
-            await handler.CustomerRegisteredAsync(user.Id, user.Email!, ct); // e.g. Orders links the guest orders
-        }
-
         await signIn.SignInAsync(user, isPersistent: false);
-        return ToCurrentUser(user, [Roles.Customer]);
+        return new RegistrationResponse(ToCurrentUser(user, [Roles.Customer]), "");
     }
 
-    public async Task<CurrentUserResponse?> LoginAsync(LoginRequest request, CancellationToken ct)
+    public Task ConfirmEmailAsync(Guid userId, string token, CancellationToken ct) =>
+        throw new NotImplementedException("Not yet test-driven.");
+
+    public Task<string?> RequestEmailConfirmationAsync(string email, CancellationToken ct) =>
+        throw new NotImplementedException("Not yet test-driven.");
+
+    public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct)
     {
         var user = await users.FindByEmailAsync(request.Email);
         if (user is null)
         {
-            return null;
+            return LoginResult.Failed(LoginFailure.InvalidCredentials);
         }
 
         // lockoutOnFailure: too many wrong passwords locks the account for a while (Identity defaults: 5 tries).
         var result = await signIn.PasswordSignInAsync(user, request.Password, request.RememberMe, lockoutOnFailure: true);
-        return result.Succeeded ? ToCurrentUser(user, await users.GetRolesAsync(user)) : null;
+        return result.Succeeded
+            ? LoginResult.Success(ToCurrentUser(user, await users.GetRolesAsync(user)))
+            : LoginResult.Failed(LoginFailure.InvalidCredentials);
     }
 
     public Task LogoutAsync(CancellationToken ct) => signIn.SignOutAsync();

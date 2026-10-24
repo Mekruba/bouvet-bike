@@ -77,7 +77,7 @@ public static class UsersModule
         return api;
     }
 
-    private static async Task<CreatedAtRoute<CurrentUserResponse>> Register(RegisterRequest request, IAccountService accounts, CancellationToken ct) =>
+    private static async Task<CreatedAtRoute<RegistrationResponse>> Register(RegisterRequest request, IAccountService accounts, CancellationToken ct) =>
         TypedResults.CreatedAtRoute(await accounts.RegisterAsync(request, ct), nameof(GetMe));
 
     private static async Task<Results<Ok<CurrentUserResponse>, UnauthorizedHttpResult>> GetMe(IAccountService accounts, CancellationToken ct) =>
@@ -87,7 +87,7 @@ public static class UsersModule
     private static async Task<Results<Ok<CurrentUserResponse>, ProblemHttpResult>> Login(
         LoginRequest request, IAccountService accounts, HttpResponse response, CancellationToken ct)
     {
-        if (await accounts.LoginAsync(request, ct) is { } user)
+        if ((await accounts.LoginAsync(request, ct)).User is { } user)
         {
             return TypedResults.Ok(user);
         }

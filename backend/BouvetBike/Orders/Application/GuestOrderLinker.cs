@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BouvetBike.Orders.Application;
 
-/// <summary>When a customer registers, links the guest orders booked with the same email to the new account.</summary>
+/// <summary>When a customer confirms their email, links the guest orders booked with that email to their account.</summary>
 public sealed class GuestOrderLinker(AppDbContext db, TimeProvider clock) : ICustomerAccountEvents
 {
-    public async Task CustomerRegisteredAsync(Guid customerId, string email, CancellationToken ct)
+    public async Task CustomerEmailConfirmedAsync(Guid customerId, string email, CancellationToken ct)
     {
         var normalized = Email.Create(email);
         var guestOrders = await db.MaintenanceOrders

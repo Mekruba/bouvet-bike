@@ -80,9 +80,9 @@ public class StaffApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     public async Task Get_Customer_Is404()
     {
         var customer = await factory.CreateClient(role: null).PostJsonAsync("/api/users", new RegisterRequest("Kari", UniqueEmail(), null, Password))
-            .ReadAs<CurrentUserResponse>(HttpStatusCode.Created);
+            .ReadAs<RegistrationResponse>(HttpStatusCode.Created);
 
-        await _admin.GetAsync($"{Url}/{customer.Id}").AssertProblem(HttpStatusCode.NotFound);
+        await _admin.GetAsync($"{Url}/{customer.User.Id}").AssertProblem(HttpStatusCode.NotFound);
     }
 
     [Theory]
