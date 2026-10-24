@@ -17,11 +17,11 @@ internal static class AccountTestHelpers
     public static Task<RegistrationResponse> RegisterOk(this HttpClient client, string email, string? phone = null) =>
         client.Register(email, phone).ReadAs<RegistrationResponse>(HttpStatusCode.Created);
 
-    /// <summary>What clicking the link in the confirmation email does: the confirm page posts the token.</summary>
+    /// <summary>What clicking the link in the confirmation email does: the confirm page sends the token with a PUT.</summary>
     public static Task<HttpResponseMessage> FollowConfirmationLink(this HttpClient client, string link)
     {
         var query = QueryHelpers.ParseQuery(new Uri(new Uri("http://localhost"), link).Query);
-        return client.PostJsonAsync($"/api/users/{query["userId"]}/email-confirmation", new ConfirmEmailRequest(query["token"]!));
+        return client.PutJsonAsync($"/api/users/{query["userId"]}/email-confirmation", new ConfirmEmailRequest(query["token"]!));
     }
 
     public static Task<HttpResponseMessage> Login(this HttpClient client, string email, string password = Password) =>

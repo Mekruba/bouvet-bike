@@ -9,7 +9,7 @@ namespace BouvetBike.Tests.Users;
 
 /// <summary>
 /// Real cookie sign-in, end to end (these clients send no test role header): register (<c>POST /api/users</c>),
-/// confirm the email (<c>POST /api/users/{id}/email-confirmation</c>), log in and out (<c>/api/session</c>).
+/// confirm the email (<c>PUT /api/users/{id}/email-confirmation</c>), log in and out (<c>/api/session</c>).
 /// Each test uses its own client, so its own cookie jar.
 /// </summary>
 public class AccountApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
@@ -131,14 +131,27 @@ public class AccountApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var client = factory.CreateClient(role: null);
         var registration = await client.RegisterOk(UniqueEmail());
 
-        await client.PostJsonAsync($"/api/users/{registration.User.Id}/email-confirmation", new ConfirmEmailRequest("not-the-token"))
+        await client.PutJsonAsync($"/api/users/{registration.User.Id}/email-confirmation", new ConfirmEmailRequest("not-the-token"))
             .AssertProblem(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task ConfirmationLink_ForUnknownUser_Is400() =>
-        await factory.CreateClient(role: null).PostJsonAsync($"/api/users/{Guid.NewGuid()}/email-confirmation", new ConfirmEmailRequest("x"))
+        await factory.CreateClient(role: null).PutJsonAsync($"/api/users/{Guid.NewGuid()}/email-confirmation", new ConfirmEmailRequest("x"))
             .AssertProblem(HttpStatusCode.BadRequest);
+
+    [Fact]
+    public async Task ConfirmationLink_WithPost_Is405()
+    {
+        // The confirmation is a singleton that confirming sets, idempotently: PUT, not POST.
+        var client = factory.CreateClient(role: null);
+        var registration = await client.RegisterOk(UniqueEmail());
+
+        var response = await client.PostJsonAsync($"/api/users/{registration.User.Id}/email-confirmation", new ConfirmEmailRequest("x"));
+
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        Assert.Contains(HttpMethod.Put.Method, response.Content.Headers.Allow);
+    }
 
     [Fact]
     public async Task NewConfirmationLink_CanBeRequested_AndWorks()
