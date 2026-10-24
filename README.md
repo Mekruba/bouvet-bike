@@ -73,6 +73,19 @@ Then log in at http://localhost:5173/login. Under **Staff area → Staff**, the 
 
 The SQLite database (`backend/BouvetBike/bouvetbike.db`) is created on first start. Daily capacity is set in the staff area (Capacity); `Capacity:MaxOrdersPerDay` in `appsettings.json` only sets the starting default for every weekday. After changing the data model, run `just reset-db`.
 
+## Run with Docker
+
+Needs only Docker with Compose.
+
+```sh
+cp .env.example .env   # set ADMIN_EMAIL and ADMIN_PASSWORD
+docker compose up --build -d   # or: just up
+```
+
+The app runs at http://localhost:8080 (`PORT` in `.env` changes it). nginx serves the built frontend and proxies `/api` to the backend, which isn't published. The database and data protection keys are kept in the `data` volume. `docker compose down` stops the app (or `just down`); add `-v` to delete the data as well.
+
+Production is the default environment, so there's no demo data and no Scalar. Set `ASPNETCORE_ENVIRONMENT=Development` in `.env` to get the demo discount codes.
+
 ## Using the app
 
 **Customers** (no account needed):

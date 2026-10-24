@@ -7,6 +7,13 @@ Browser ──▶ Vite dev server (:5173) ──/api/*──▶ ASP.NET Core API
             React SPA                            modules: Orders, Catalog, Discounts, Users
 ```
 
+With Docker Compose, nginx takes the Vite server's place:
+
+```
+Browser ──▶ frontend: nginx (:8080) ──/api/*──▶ backend: ASP.NET Core (:8080, not published) ──▶ SQLite in the `data` volume
+            built SPA, SPA fallback
+```
+
 ## Backend structure
 
 One project (`backend/BouvetBike`), split into **modules by business area**. Each module uses the same layer folders, but only the ones it needs:
@@ -57,6 +64,7 @@ BouvetBike/
 | API docs | Built-in OpenAPI + Scalar UI | Generated from code, so it stays in sync |
 | Frontend | React + TypeScript via Vite, React Router; no UI or data library | Customer portal at `/`, staff area at `/admin`. Small, typed API layer and a handful of reusable components instead of a component library: fewer dependencies, full control over the look. See [Frontend](#frontend) |
 | Dev wiring | Vite proxy for `/api` | Same origin in dev, so no CORS config |
+| Containers | Two images (backend on `aspnet`, frontend on unprivileged nginx), both non-root; nginx proxies `/api` like the Vite proxy does; the database and data protection keys sit in one volume | Same origin, so still no CORS. Only nginx is published. The backend trusts `X-Forwarded-For` so rate limiting sees client IPs, which is safe only because nothing else can reach it. Keys on the volume keep logins and confirmation links valid across restarts; they're stored unencrypted, which is fine for a single-host volume |
 | Tests | xUnit + `WebApplicationFactory` against a temp SQLite file; NetArchTest; Vitest + Testing Library | Integration tests exercise the real HTTP pipeline and database |
 
 ## Customer/admin separation
