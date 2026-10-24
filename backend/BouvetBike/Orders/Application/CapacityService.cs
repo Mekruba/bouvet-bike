@@ -18,7 +18,7 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
 
         return Enumerable.Range(0, query.Days)
             .Select(offset => from.AddDays(offset))
-            .Select(date => new DayCapacityResponse(date, booked.GetValueOrDefault(date), MaxPerDay))
+            .Select(date => new DayCapacityResponse(date, booked.GetValueOrDefault(date), MaxPerDay, MaxPerDay))
             .ToList();
     }
 
@@ -44,6 +44,19 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
     }
 
     /// <summary>Non-cancelled orders per due date in [from, to].</summary>
+    public Task<CapacityScheduleResponse> GetScheduleAsync(CancellationToken ct) => throw new NotImplementedException("Not yet test-driven.");
+
+    public Task<CapacityScheduleResponse> PatchScheduleAsync(Microsoft.AspNetCore.JsonPatch.SystemTextJson.JsonPatchDocument<CapacitySchedulePatch> patch, CancellationToken ct) =>
+        throw new NotImplementedException("Not yet test-driven.");
+
+    public Task<IReadOnlyList<CapacityOverrideResponse>> GetOverridesAsync(CapacityOverrideQuery query, CancellationToken ct) =>
+        throw new NotImplementedException("Not yet test-driven.");
+
+    public Task<(CapacityOverrideResponse Override, bool Created)> SetOverrideAsync(DateOnly date, SetCapacityOverrideRequest request, CancellationToken ct) =>
+        throw new NotImplementedException("Not yet test-driven.");
+
+    public Task RemoveOverrideAsync(DateOnly date, CancellationToken ct) => throw new NotImplementedException("Not yet test-driven.");
+
     private async Task<Dictionary<DateOnly, int>> CountPerDayAsync(DateOnly from, DateOnly to, Guid? ignoreOrderId, CancellationToken ct) =>
         await db.MaintenanceOrders
             .Where(o => o.DueDate >= from && o.DueDate <= to && o.Status != OrderStatus.Cancelled && o.Id != ignoreOrderId)
