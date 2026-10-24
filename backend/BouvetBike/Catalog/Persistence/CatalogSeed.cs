@@ -6,6 +6,7 @@ namespace BouvetBike.Catalog.Persistence;
 /// <summary>The services from the assignment. Prices and durations are placeholders.</summary>
 public static class CatalogSeed
 {
+    /// <summary>New instances on every call, ready to be added to a context.</summary>
     public static IEnumerable<ServiceType> ServiceTypes() =>
     [
         ServiceType.Create("Wheel adjustment", "Truing, spoke tension and hub check.", new Money(490), TimeSpan.FromMinutes(30)),

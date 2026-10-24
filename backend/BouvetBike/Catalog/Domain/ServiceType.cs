@@ -16,6 +16,8 @@ public sealed class ServiceType : AggregateRoot
 
     private ServiceType() { } // EF Core
 
+    /// <summary>A new, active service.</summary>
+    /// <exception cref="DomainException">See <see cref="Update"/>.</exception>
     public static ServiceType Create(string name, string? description, Money basePrice, TimeSpan estimatedDuration)
     {
         var service = new ServiceType { IsActive = true };
@@ -23,6 +25,8 @@ public sealed class ServiceType : AggregateRoot
         return service;
     }
 
+    /// <summary>Changes the details. Orders already placed keep the name and price they copied.</summary>
+    /// <exception cref="DomainException">Missing or too long name, too long description, or a duration that isn't positive.</exception>
     public void Update(string name, string? description, Money basePrice, TimeSpan estimatedDuration)
     {
         if (estimatedDuration <= TimeSpan.Zero)
@@ -39,5 +43,6 @@ public sealed class ServiceType : AggregateRoot
     /// <summary>Inactive services can't be ordered, but stay referenced by existing orders.</summary>
     public void Deactivate() => IsActive = false;
 
+    /// <summary>Makes a retired service orderable again.</summary>
     public void Activate() => IsActive = true;
 }

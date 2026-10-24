@@ -9,8 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BouvetBike.Catalog.Application;
 
+/// <summary>The catalog, stored in <see cref="AppDbContext.ServiceTypes"/>.</summary>
 public sealed class CatalogService(AppDbContext db) : ICatalogService
 {
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ServiceTypeResponse>> GetAllAsync(bool includeInactive, CancellationToken ct)
     {
         var services = await db.ServiceTypes
@@ -20,9 +22,11 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         return services.Select(ToResponse).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<ServiceTypeResponse> GetByIdAsync(Guid id, CancellationToken ct) =>
         ToResponse(await GetForOrderAsync(id, ct));
 
+    /// <inheritdoc />
     public async Task<ServiceTypeResponse> CreateAsync(CreateServiceTypeRequest request, CancellationToken ct)
     {
         await EnsureNameIsFree(request.Name, exceptId: null, ct);
@@ -34,6 +38,7 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         return ToResponse(service);
     }
 
+    /// <inheritdoc />
     public async Task<ServiceTypeResponse> PatchAsync(Guid id, JsonPatchDocument<ServiceTypePatch> patch, CancellationToken ct)
     {
         var service = await GetForOrderAsync(id, ct);
@@ -72,9 +77,13 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         return ToResponse(service);
     }
 
+    /// <inheritdoc />
     public async Task<ServiceType> GetForOrderAsync(Guid id, CancellationToken ct) =>
         await db.ServiceTypes.FindAsync([id], ct) ?? throw new NotFoundException($"Service type {id} was not found.");
 
+    /// <summary>Service names are unique, ignoring case (the column uses the NOCASE collation).</summary>
+    /// <param name="exceptId">The service being renamed, which may keep its own name.</param>
+    /// <exception cref="ConflictException">Another service has the name.</exception>
     private async Task EnsureNameIsFree(string name, Guid? exceptId, CancellationToken ct)
     {
         var trimmed = name.Trim();
@@ -84,6 +93,7 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
         }
     }
 
+    /// <summary>The service as the API shows it, with the duration in whole minutes.</summary>
     private static ServiceTypeResponse ToResponse(ServiceType service) => new(
         service.Id,
         service.Name,

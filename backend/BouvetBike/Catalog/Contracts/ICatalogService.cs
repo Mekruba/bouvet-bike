@@ -9,9 +9,11 @@ public interface ICatalogService
     /// <summary>Sorted by name. Inactive services are only included when asked for (staff only).</summary>
     Task<IReadOnlyList<ServiceTypeResponse>> GetAllAsync(bool includeInactive, CancellationToken ct);
 
+    /// <summary>One service type, active or not.</summary>
     /// <exception cref="Shared.Application.NotFoundException">Unknown service type.</exception>
     Task<ServiceTypeResponse> GetByIdAsync(Guid id, CancellationToken ct);
 
+    /// <summary>Adds an active service type to the catalog.</summary>
     /// <exception cref="Shared.Application.ConflictException">A service type with that name exists (case-insensitive).</exception>
     Task<ServiceTypeResponse> CreateAsync(CreateServiceTypeRequest request, CancellationToken ct);
 

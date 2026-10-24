@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BouvetBike.Catalog.Persistence;
 
+/// <summary>Table mapping for <see cref="ServiceType"/>.</summary>
 public class ServiceTypeConfiguration : IEntityTypeConfiguration<ServiceType>
 {
+    /// <summary>Unique, case-insensitive names; the price stored inline as a complex type.</summary>
     public void Configure(EntityTypeBuilder<ServiceType> builder)
     {
         builder.Property(s => s.Name).HasMaxLength(ServiceType.NameMaxLength).UseCollation("NOCASE");
