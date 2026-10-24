@@ -24,10 +24,12 @@ public static class UsersModule
                 options.User.RequireUniqueEmail = true;
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.SignIn.RequireConfirmedEmail = true;
             })
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<AppDbContext>()
-            .AddSignInManager();
+            .AddSignInManager()
+            .AddDefaultTokenProviders(); // email confirmation tokens
 
         services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
         services.ConfigureApplicationCookie(options =>
@@ -64,6 +66,8 @@ public static class UsersModule
         var users = api.MapGroup("/users").WithTags("Users");
         users.MapPost("/", Register);
         users.MapGet("/me", GetMe).WithName(nameof(GetMe)).RequireAuthorization();
+        users.MapPost("/{id:guid}/email-confirmation", ConfirmEmail);
+        api.MapPost("/email-confirmation-requests", RequestEmailConfirmation).WithTags("Users");
 
         var session = api.MapGroup("/session").WithTags("Users");
         session.MapPost("/", Login);
@@ -87,14 +91,36 @@ public static class UsersModule
     private static async Task<Results<Ok<CurrentUserResponse>, ProblemHttpResult>> Login(
         LoginRequest request, IAccountService accounts, HttpResponse response, CancellationToken ct)
     {
-        if ((await accounts.LoginAsync(request, ct)).User is { } user)
+        var result = await accounts.LoginAsync(request, ct);
+        if (result.User is { } user)
         {
             return TypedResults.Ok(user);
+        }
+
+        if (result.Failure == LoginFailure.EmailNotConfirmed)
+        {
+            // The password was right, so saying why reveals nothing to someone who doesn't own the account.
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: "Email not confirmed",
+                detail: "Confirm your email before logging in. Use the link we sent you, or ask for a new one.");
         }
 
         response.Headers.WWWAuthenticate = Challenge;
         return TypedResults.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Login failed", detail: "Invalid email or password.");
     }
+
+    /// <summary>What the confirm page calls with the token from the emailed link.</summary>
+    private static async Task<NoContent> ConfirmEmail(Guid id, ConfirmEmailRequest request, IAccountService accounts, CancellationToken ct)
+    {
+        await accounts.ConfirmEmailAsync(id, request.Token, ct);
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>202: the link would be emailed. Without email delivery it's in the response, for unconfirmed accounts only.</summary>
+    private static async Task<Accepted<EmailConfirmationRequestResponse>> RequestEmailConfirmation(
+        EmailConfirmationRequest request, IAccountService accounts, CancellationToken ct) =>
+        TypedResults.Accepted((string?)null, new EmailConfirmationRequestResponse(await accounts.RequestEmailConfirmationAsync(request.Email, ct)));
 
     private static async Task<NoContent> Logout(IAccountService accounts, CancellationToken ct)
     {

@@ -1,3 +1,5 @@
+using System.Buffers.Text;
+using System.Text;
 using BouvetBike.Shared.Application;
 using BouvetBike.Shared.Contracts;
 using BouvetBike.Shared.Domain;
@@ -12,19 +14,40 @@ public sealed class AccountService(
     ICurrentUser currentUser,
     IEnumerable<ICustomerAccountEvents> accountEvents) : IAccountService
 {
+    private const string InvalidLink = "This confirmation link is invalid or has expired. Ask for a new one.";
+
     public async Task<RegistrationResponse> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var user = NewUser(request.Name, request.Email, NormalizePhone(request.Phone));
         await CreateAsync(user, request.Password, Roles.Customer);
-        await signIn.SignInAsync(user, isPersistent: false);
-        return new RegistrationResponse(ToCurrentUser(user, [Roles.Customer]), "");
+        return new RegistrationResponse(ToCurrentUser(user, [Roles.Customer]), await ConfirmationLinkAsync(user));
     }
 
-    public Task ConfirmEmailAsync(Guid userId, string token, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public async Task ConfirmEmailAsync(Guid userId, string token, CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(userId.ToString()) ?? throw new DomainException(InvalidLink);
+        if (user.EmailConfirmed)
+        {
+            return; // following the link twice is fine
+        }
 
-    public Task<string?> RequestEmailConfirmationAsync(string email, CancellationToken ct) =>
-        throw new NotImplementedException("Not yet test-driven.");
+        if (DecodeToken(token) is not { } decoded || !(await users.ConfirmEmailAsync(user, decoded)).Succeeded)
+        {
+            throw new DomainException(InvalidLink);
+        }
+
+        // The address is now proven to be theirs, so other modules may act on it (Orders links guest orders).
+        foreach (var handler in accountEvents)
+        {
+            await handler.CustomerEmailConfirmedAsync(user.Id, user.Email!, ct);
+        }
+    }
+
+    public async Task<string?> RequestEmailConfirmationAsync(string email, CancellationToken ct)
+    {
+        var user = await users.FindByEmailAsync(email);
+        return user is null || user.EmailConfirmed ? null : await ConfirmationLinkAsync(user);
+    }
 
     public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct)
     {
@@ -34,7 +57,20 @@ public sealed class AccountService(
             return LoginResult.Failed(LoginFailure.InvalidCredentials);
         }
 
-        // lockoutOnFailure: too many wrong passwords locks the account for a while (Identity defaults: 5 tries).
+        if (!user.EmailConfirmed)
+        {
+            // Identity would refuse before checking the password, which tells anyone the account exists and is
+            // unconfirmed. Check the password first (counting failures toward lockout); only then say why.
+            if (await users.IsLockedOutAsync(user) || !await users.CheckPasswordAsync(user, request.Password))
+            {
+                await users.AccessFailedAsync(user);
+                return LoginResult.Failed(LoginFailure.InvalidCredentials);
+            }
+
+            return LoginResult.Failed(LoginFailure.EmailNotConfirmed);
+        }
+
+        // lockoutOnFailure: too many wrong passwords locks the account for a while (5 tries, 15 minutes).
         var result = await signIn.PasswordSignInAsync(user, request.Password, request.RememberMe, lockoutOnFailure: true);
         return result.Succeeded
             ? LoginResult.Success(ToCurrentUser(user, await users.GetRolesAsync(user)))
@@ -85,8 +121,31 @@ public sealed class AccountService(
     public async Task<StaffUserResponse> CreateStaffAsync(CreateStaffRequest request, CancellationToken ct)
     {
         var user = NewUser(request.Name, request.Email, phone: null);
+        user.EmailConfirmed = true; // created by an admin
         await CreateAsync(user, request.Password, request.Role);
         return ToStaff(user, [request.Role]);
+    }
+
+    /// <summary>
+    /// The frontend page the confirmation email would link to. The token is Base64Url-encoded so it survives
+    /// being put in a URL. With real email this would go to the inbox instead of back to the caller.
+    /// </summary>
+    private async Task<string> ConfirmationLinkAsync(ApplicationUser user)
+    {
+        var token = await users.GenerateEmailConfirmationTokenAsync(user);
+        return $"/confirm-email?userId={user.Id}&token={Base64Url.EncodeToString(Encoding.UTF8.GetBytes(token))}";
+    }
+
+    private static string? DecodeToken(string token)
+    {
+        try
+        {
+            return Encoding.UTF8.GetString(Base64Url.DecodeFromChars(token));
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
     }
 
     private static ApplicationUser NewUser(string name, string email, string? phone)

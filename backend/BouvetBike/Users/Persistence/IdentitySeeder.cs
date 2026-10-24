@@ -35,7 +35,7 @@ public static class IdentitySeeder
             return;
         }
 
-        var admin = new ApplicationUser { Name = "Administrator", UserName = email.ToLowerInvariant(), Email = email.ToLowerInvariant() };
+        var admin = new ApplicationUser { Name = "Administrator", UserName = email.ToLowerInvariant(), Email = email.ToLowerInvariant(), EmailConfirmed = true };
         var result = await users.CreateAsync(admin, password);
         if (result.Succeeded)
         {
