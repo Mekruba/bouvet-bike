@@ -7,6 +7,7 @@ using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Persistence;
 using BouvetBike.Users.Api;
 using BouvetBike.Users.Persistence;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -18,6 +19,12 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddValidation();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// The keys sign the auth cookie and email confirmation tokens; in a container they must outlive the container.
+if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+{
+    builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
 
 builder.Services.AddUsersModule();
 builder.Services.AddCatalogModule();
