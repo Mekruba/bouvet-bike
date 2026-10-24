@@ -54,6 +54,17 @@ public static class OrdersModule
         admin.MapPut("/{id:guid}/price-override", SetPriceOverride).RequireAuthorization(Policies.Admin);
         admin.MapDelete("/{id:guid}/price-override", ClearPriceOverride).RequireAuthorization(Policies.Admin);
 
+        // Capacity settings: weekday defaults (a singleton) and per-date overrides keyed by date.
+        var capacity = api.MapGroup("/admin/capacity").WithTags("Capacity").RequireAuthorization(Policies.Staff);
+        capacity.MapGet("/schedule", GetSchedule);
+        capacity.MapPatch("/schedule", PatchSchedule)
+            .RequireAuthorization(Policies.Admin)
+            .Accepts<JsonPatchDocument<CapacitySchedulePatch>>(JsonPatch.MediaType);
+        capacity.MapGet("/overrides", GetOverrides);
+        capacity.MapGet("/overrides/{date}", GetOverride).WithName(nameof(GetOverride));
+        capacity.MapPut("/overrides/{date}", SetOverride).RequireAuthorization(Policies.Admin);
+        capacity.MapDelete("/overrides/{date}", RemoveOverride).RequireAuthorization(Policies.Admin);
+
         return api;
     }
 
@@ -168,6 +179,45 @@ public static class OrdersModule
     private static async Task<NoContent> ClearPriceOverride(Guid id, IAdminOrderService orders, CancellationToken ct)
     {
         await orders.ClearPriceOverrideAsync(id, ct);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<Ok<CapacityScheduleResponse>> GetSchedule(ICapacityService capacity, CancellationToken ct) =>
+        TypedResults.Ok(await capacity.GetScheduleAsync(ct));
+
+    private static async Task<Results<Ok<CapacityScheduleResponse>, ProblemHttpResult>> PatchSchedule(
+        JsonPatchDocument<CapacitySchedulePatch> patch, ICapacityService capacity, CancellationToken ct)
+    {
+        if (JsonPatch.FindMalformedOperation(patch) is { } problem)
+        {
+            return problem;
+        }
+
+        return TypedResults.Ok(await capacity.PatchScheduleAsync(patch, ct));
+    }
+
+    private static async Task<Ok<IReadOnlyList<CapacityOverrideResponse>>> GetOverrides(
+        [AsParameters] CapacityOverrideQuery query, ICapacityService capacity, CancellationToken ct) =>
+        TypedResults.Ok(await capacity.GetOverridesAsync(query, ct));
+
+    private static async Task<Results<Ok<CapacityOverrideResponse>, NotFound>> GetOverride(DateOnly date, ICapacityService capacity, CancellationToken ct) =>
+        (await capacity.GetOverridesAsync(new CapacityOverrideQuery(date, date), ct)).FirstOrDefault() is { } found
+            ? TypedResults.Ok(found)
+            : TypedResults.NotFound();
+
+    /// <summary>RFC 9110: 201 when the date gets its first override, 200 when it's replaced.</summary>
+    private static async Task<Results<CreatedAtRoute<CapacityOverrideResponse>, Ok<CapacityOverrideResponse>>> SetOverride(
+        DateOnly date, SetCapacityOverrideRequest request, ICapacityService capacity, CancellationToken ct)
+    {
+        var (result, created) = await capacity.SetOverrideAsync(date, request, ct);
+        return created
+            ? TypedResults.CreatedAtRoute(result, nameof(GetOverride), new { date = date.ToString("yyyy-MM-dd") })
+            : TypedResults.Ok(result);
+    }
+
+    private static async Task<NoContent> RemoveOverride(DateOnly date, ICapacityService capacity, CancellationToken ct)
+    {
+        await capacity.RemoveOverrideAsync(date, ct);
         return TypedResults.NoContent();
     }
 }

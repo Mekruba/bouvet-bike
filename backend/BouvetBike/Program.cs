@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using BouvetBike.Catalog.Api;
 using BouvetBike.Discounts.Api;
 using BouvetBike.Orders.Api;
+using BouvetBike.Orders.Persistence;
 using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Persistence;
 using BouvetBike.Users.Api;
@@ -48,6 +49,7 @@ using (var scope = app.Services.CreateScope())
 {
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
     await IdentitySeeder.SeedAsync(scope.ServiceProvider);
+    await CapacitySeeder.SeedAsync(scope.ServiceProvider);
 
     if (app.Environment.IsDevelopment())
     {

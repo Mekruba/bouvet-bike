@@ -106,7 +106,7 @@ public class CapacitySettingsApiTests(ApiFactory factory) : IClassFixture<ApiFac
     public async Task Override_OfZero_ClosesTheDay()
     {
         await SetSchedule();
-        var date = Today.AddDays(32);
+        var date = Today.AddDays(60); // the day after must be untouched by other tests: it's the expected suggestion
         await _admin.PutJsonAsync($"{OverridesUrl}/{date:yyyy-MM-dd}", new SetCapacityOverrideRequest(0, "Holiday")).AssertStatus(HttpStatusCode.Created);
 
         var problem = await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(await _anonymous.ServiceTypeId(), date)).AssertProblem(HttpStatusCode.BadRequest);

@@ -21,10 +21,32 @@ public sealed class CapacitySchedule : AggregateRoot
     private CapacitySchedule() { } // EF Core
 
     /// <summary>Every weekday starts with the same default.</summary>
-    public static CapacitySchedule Create(int everyDay) => throw new NotImplementedException("Not yet test-driven.");
+    public static CapacitySchedule Create(int everyDay)
+    {
+        var schedule = new CapacitySchedule();
+        schedule.Update(everyDay, everyDay, everyDay, everyDay, everyDay, everyDay, everyDay);
+        return schedule;
+    }
 
-    public int ForDay(DayOfWeek day) => throw new NotImplementedException("Not yet test-driven.");
+    public int ForDay(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Monday => Monday,
+        DayOfWeek.Tuesday => Tuesday,
+        DayOfWeek.Wednesday => Wednesday,
+        DayOfWeek.Thursday => Thursday,
+        DayOfWeek.Friday => Friday,
+        DayOfWeek.Saturday => Saturday,
+        _ => Sunday,
+    };
 
-    public void Update(int monday, int tuesday, int wednesday, int thursday, int friday, int saturday, int sunday) =>
-        throw new NotImplementedException("Not yet test-driven.");
+    public void Update(int monday, int tuesday, int wednesday, int thursday, int friday, int saturday, int sunday)
+    {
+        int[] values = [monday, tuesday, wednesday, thursday, friday, saturday, sunday];
+        if (values.Any(v => v is < 0 or > MaxPerDay))
+        {
+            throw new DomainException($"Daily capacity must be between 0 (closed) and {MaxPerDay}.");
+        }
+
+        (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) = (monday, tuesday, wednesday, thursday, friday, saturday, sunday);
+    }
 }

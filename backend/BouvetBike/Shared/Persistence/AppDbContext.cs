@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<MaintenanceOrder> MaintenanceOrders => Set<MaintenanceOrder>();
     public DbSet<ServiceType> ServiceTypes => Set<ServiceType>();
     public DbSet<DiscountCode> DiscountCodes => Set<DiscountCode>();
+    public DbSet<CapacitySchedule> CapacitySchedules => Set<CapacitySchedule>();
+    public DbSet<CapacityOverride> CapacityOverrides => Set<CapacityOverride>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
