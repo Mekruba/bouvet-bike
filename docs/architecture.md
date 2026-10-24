@@ -61,7 +61,7 @@ BouvetBike/
 | Schema | `EnsureCreated()` on startup, no migrations | Fast iteration, but schema changes require deleting the DB. Switch to `dotnet ef migrations` if data must survive changes |
 | Validation | .NET 10 built-in minimal API validation (`AddValidation()` + DataAnnotations) | No extra library; errors come back as RFC 7807 `ValidationProblemDetails` |
 | Errors | `AddProblemDetails()` + `UseExceptionHandler()` | Consistent JSON error shape that the frontend `ApiError` understands |
-| API docs | Built-in OpenAPI + Scalar UI | Generated from code, so it stays in sync |
+| API docs | Built-in OpenAPI + Scalar UI, with the `///` comments included (`GenerateDocumentationFile`) | Generated from code, so it stays in sync. Handlers are `internal` because the generator ignores comments on private methods; `OpenApiTests` checks the comments arrive |
 | Frontend | React + TypeScript via Vite, React Router; no UI or data library | Customer portal at `/`, staff area at `/admin`. Small, typed API layer and a handful of reusable components instead of a component library: fewer dependencies, full control over the look. See [Frontend](#frontend) |
 | Dev wiring | Vite proxy for `/api` | Same origin in dev, so no CORS config |
 | Containers | Two images (backend on `aspnet`, frontend on unprivileged nginx), both non-root; nginx proxies `/api` like the Vite proxy does; the database and data protection keys sit in one volume | Same origin, so still no CORS. Only nginx is published. The backend trusts `X-Forwarded-For` so rate limiting sees client IPs, which is safe only because nothing else can reach it. Keys on the volume keep logins and confirmation links valid across restarts; they're stored unencrypted, which is fine for a single-host volume |
