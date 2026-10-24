@@ -5,6 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>d7da4649-680f-4025-a846-7fc9b551f2da</UserSecretsId>
+    <!-- The /// comments go into the OpenAPI document (Scalar shows them) and their crefs are checked on build.
+         CS1591 (no comment) and CS1573 (not every parameter has a <param>) are off: records and
+         self-explanatory parameters don't need one. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

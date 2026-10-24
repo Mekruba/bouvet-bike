@@ -30,27 +30,32 @@ public static class DiscountsModule
         return api;
     }
 
-    /// <summary><c>GET /api/admin/discount-codes</c>: 200 with every code and how often it has been used.</summary>
-    private static async Task<Ok<IReadOnlyList<DiscountCodeResponse>>> GetAll(IDiscountService discounts, CancellationToken ct) =>
+    /// <summary>List the discount codes</summary>
+    /// <remarks>Every code, active or not, sorted by code, with how often each has been used.</remarks>
+    internal static async Task<Ok<IReadOnlyList<DiscountCodeResponse>>> GetAll(IDiscountService discounts, CancellationToken ct) =>
         TypedResults.Ok(await discounts.GetAllAsync(ct));
 
-    /// <summary><c>GET /api/admin/discount-codes/{id}</c>: 200 with the code; 404 if unknown.</summary>
-    private static async Task<Ok<DiscountCodeResponse>> GetDiscountCode(Guid id, IDiscountService discounts, CancellationToken ct) =>
+    /// <summary>Get a discount code</summary>
+    /// <remarks>404 if unknown.</remarks>
+    internal static async Task<Ok<DiscountCodeResponse>> GetDiscountCode(Guid id, IDiscountService discounts, CancellationToken ct) =>
         TypedResults.Ok(await discounts.GetByIdAsync(id, ct));
 
-    /// <summary><c>POST /api/admin/discount-codes</c>: 201 with the new code and its <c>Location</c>; 409 if the code exists; 400 for invalid terms.</summary>
-    private static async Task<CreatedAtRoute<DiscountCodeResponse>> Create(
+    /// <summary>Add a discount code</summary>
+    /// <remarks>201 with the new code and its <c>Location</c>; 409 if the code exists (ignoring case); 400 for invalid terms, e.g. a percentage over 100.</remarks>
+    internal static async Task<CreatedAtRoute<DiscountCodeResponse>> Create(
         CreateDiscountCodeRequest request, IDiscountService discounts, CancellationToken ct)
     {
         var created = await discounts.CreateAsync(request, ct);
         return TypedResults.CreatedAtRoute(created, nameof(GetDiscountCode), new { id = created.Id });
     }
 
-    /// <summary>
-    /// <c>PATCH /api/admin/discount-codes/{id}</c> with a JSON Patch document: 200 with the updated code.
-    /// 400 malformed patch, 409 failed <c>test</c>, 422 bad or read-only path (<c>/code</c>) or invalid terms.
-    /// </summary>
-    private static async Task<Results<Ok<DiscountCodeResponse>, ProblemHttpResult>> Patch(
+    /// <summary>Change or retire a discount code</summary>
+    /// <remarks>
+    /// A JSON Patch document on <c>/type</c>, <c>/value</c>, <c>/validFrom</c>, <c>/validTo</c>, <c>/maxUses</c>
+    /// or <c>/isActive</c>. <c>/code</c> is read-only, since orders keep the code they used. 200 with the updated code.
+    /// 400 malformed patch, 409 failed <c>test</c>, 422 bad or read-only path or invalid terms.
+    /// </remarks>
+    internal static async Task<Results<Ok<DiscountCodeResponse>, ProblemHttpResult>> Patch(
         Guid id, JsonPatchDocument<DiscountCodePatch> patch, IDiscountService discounts, CancellationToken ct)
     {
         if (JsonPatch.FindMalformedOperation(patch) is { } problem)

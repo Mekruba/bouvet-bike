@@ -31,9 +31,10 @@ public static class CatalogModule
         return api;
     }
 
-    /// <summary><c>GET /api/service-types</c>: 200 with the active services; 401/403 when a non-staff caller asks for inactive ones too.</summary>
+    /// <summary>List the services</summary>
+    /// <remarks>Active services, sorted by name. Asking for retired ones too needs staff: 401 when not logged in, 403 otherwise.</remarks>
     /// <param name="includeInactive">Staff only: also list retired service types.</param>
-    private static async Task<Results<Ok<IReadOnlyList<ServiceTypeResponse>>, ChallengeHttpResult, ForbidHttpResult>> GetAll(
+    internal static async Task<Results<Ok<IReadOnlyList<ServiceTypeResponse>>, ChallengeHttpResult, ForbidHttpResult>> GetAll(
         bool? includeInactive, ClaimsPrincipal user, IAuthorizationService authorization, ICatalogService catalog, CancellationToken ct)
     {
         if (includeInactive == true && !(await authorization.AuthorizeAsync(user, Policies.Staff)).Succeeded)
@@ -44,23 +45,27 @@ public static class CatalogModule
         return TypedResults.Ok(await catalog.GetAllAsync(includeInactive == true, ct));
     }
 
-    /// <summary><c>GET /api/service-types/{id}</c>: 200 with the service, active or not (orders still show retired ones); 404 if unknown.</summary>
-    private static async Task<Ok<ServiceTypeResponse>> GetServiceType(Guid id, ICatalogService catalog, CancellationToken ct) =>
+    /// <summary>Get a service</summary>
+    /// <remarks>Active or not, since orders still show retired ones. 404 if unknown.</remarks>
+    internal static async Task<Ok<ServiceTypeResponse>> GetServiceType(Guid id, ICatalogService catalog, CancellationToken ct) =>
         TypedResults.Ok(await catalog.GetByIdAsync(id, ct));
 
-    /// <summary><c>POST /api/service-types</c> (Admin): 201 with the new service and its <c>Location</c>; 409 if the name is taken.</summary>
-    private static async Task<CreatedAtRoute<ServiceTypeResponse>> Create(
+    /// <summary>Add a service</summary>
+    /// <remarks>Admin only. 201 with the new service and its <c>Location</c>; 409 if the name is taken (ignoring case).</remarks>
+    internal static async Task<CreatedAtRoute<ServiceTypeResponse>> Create(
         CreateServiceTypeRequest request, ICatalogService catalog, CancellationToken ct)
     {
         var created = await catalog.CreateAsync(request, ct);
         return TypedResults.CreatedAtRoute(created, nameof(GetServiceType), new { id = created.Id });
     }
 
-    /// <summary>
-    /// <c>PATCH /api/service-types/{id}</c> (Admin) with a JSON Patch document: 200 with the updated service.
+    /// <summary>Change or retire a service</summary>
+    /// <remarks>
+    /// Admin only. A JSON Patch document on <c>/name</c>, <c>/description</c>, <c>/price</c>, <c>/estimatedMinutes</c>
+    /// or <c>/isActive</c>; set <c>/isActive</c> to false to retire it. 200 with the updated service.
     /// 400 malformed patch, 409 failed <c>test</c> or taken name, 422 bad path or invalid result.
-    /// </summary>
-    private static async Task<Results<Ok<ServiceTypeResponse>, ProblemHttpResult>> Patch(
+    /// </remarks>
+    internal static async Task<Results<Ok<ServiceTypeResponse>, ProblemHttpResult>> Patch(
         Guid id, JsonPatchDocument<ServiceTypePatch> patch, ICatalogService catalog, CancellationToken ct)
     {
         if (JsonPatch.FindMalformedOperation(patch) is { } problem)

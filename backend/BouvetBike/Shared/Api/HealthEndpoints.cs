@@ -6,7 +6,9 @@ public static class HealthEndpoints
     /// <summary>Maps <c>GET /api/health</c>: 200 with <c>{ "status": "ok" }</c> while the app is running.</summary>
     public static RouteGroupBuilder MapHealthEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/health", () => TypedResults.Ok(new { status = "ok" }));
+        api.MapGet("/health", () => TypedResults.Ok(new { status = "ok" }))
+            .WithTags("Health")
+            .WithSummary("Check that the API is running"); // a lambda has no XML comment to pick up
         return api;
     }
 }

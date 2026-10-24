@@ -88,22 +88,25 @@ public static class UsersModule
         return api;
     }
 
-    /// <summary>
-    /// <c>POST /api/users</c>: 201 with the new customer and the confirmation link, <c>Location: /api/users/me</c>.
-    /// Doesn't sign in. 409 if the email is taken; 400 for a weak password or invalid phone.
-    /// </summary>
-    private static async Task<CreatedAtRoute<RegistrationResponse>> Register(RegisterRequest request, IAccountService accounts, CancellationToken ct) =>
+    /// <summary>Register as a customer</summary>
+    /// <remarks>
+    /// 201 with the new customer and the email confirmation link, <c>Location: /api/users/me</c>. Doesn't sign in:
+    /// the email must be confirmed first. 409 if the email is taken; 400 for a weak password or invalid phone.
+    /// </remarks>
+    internal static async Task<CreatedAtRoute<RegistrationResponse>> Register(RegisterRequest request, IAccountService accounts, CancellationToken ct) =>
         TypedResults.CreatedAtRoute(await accounts.RegisterAsync(request, ct), nameof(GetMe));
 
-    /// <summary><c>GET /api/users/me</c>: 200 with the logged-in user; 401 when not logged in, or the account no longer exists.</summary>
-    private static async Task<Results<Ok<CurrentUserResponse>, UnauthorizedHttpResult>> GetMe(IAccountService accounts, CancellationToken ct) =>
+    /// <summary>Get the logged-in user</summary>
+    /// <remarks>With their roles. 401 when not logged in, or the account no longer exists.</remarks>
+    internal static async Task<Results<Ok<CurrentUserResponse>, UnauthorizedHttpResult>> GetMe(IAccountService accounts, CancellationToken ct) =>
         await accounts.GetCurrentAsync(ct) is { } user ? TypedResults.Ok(user) : TypedResults.Unauthorized();
 
-    /// <summary>
-    /// <c>POST /api/session</c>: 200 with the user and the auth cookie; 403 when the password is right but the email isn't confirmed.
+    /// <summary>Log in</summary>
+    /// <remarks>
+    /// 200 with the user and the auth cookie; 403 when the password is right but the email isn't confirmed.
     /// Wrong email, wrong password and a locked-out account all get the same 401, so it doesn't reveal which accounts exist.
-    /// </summary>
-    private static async Task<Results<Ok<CurrentUserResponse>, ProblemHttpResult>> Login(
+    /// </remarks>
+    internal static async Task<Results<Ok<CurrentUserResponse>, ProblemHttpResult>> Login(
         LoginRequest request, IAccountService accounts, HttpResponse response, CancellationToken ct)
     {
         var result = await accounts.LoginAsync(request, ct);
@@ -125,41 +128,47 @@ public static class UsersModule
         return TypedResults.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Login failed", detail: "Invalid email or password.");
     }
 
-    /// <summary>
-    /// <c>PUT /api/users/{id}/email-confirmation</c>: what the confirm page calls with the token from the emailed link.
+    /// <summary>Confirm an email</summary>
+    /// <remarks>
+    /// What the confirm page calls with the token from the emailed link. Links the customer's guest orders with that email.
     /// 204, also when already confirmed (idempotent); 400 for an unknown user or a bad token.
-    /// </summary>
-    private static async Task<NoContent> ConfirmEmail(Guid id, ConfirmEmailRequest request, IAccountService accounts, CancellationToken ct)
+    /// </remarks>
+    internal static async Task<NoContent> ConfirmEmail(Guid id, ConfirmEmailRequest request, IAccountService accounts, CancellationToken ct)
     {
         await accounts.ConfirmEmailAsync(id, request.Token, ct);
         return TypedResults.NoContent();
     }
 
-    /// <summary>
-    /// <c>POST /api/email-confirmation-requests</c>: 202, since the link would be emailed. Without email delivery
-    /// it's in the response, for unconfirmed accounts only.
-    /// </summary>
-    private static async Task<Accepted<EmailConfirmationRequestResponse>> RequestEmailConfirmation(
+    /// <summary>Ask for a new confirmation link</summary>
+    /// <remarks>
+    /// 202, since the link would be emailed. Without email delivery it's in the response, for unconfirmed accounts only;
+    /// otherwise the link is null.
+    /// </remarks>
+    internal static async Task<Accepted<EmailConfirmationRequestResponse>> RequestEmailConfirmation(
         EmailConfirmationRequest request, IAccountService accounts, CancellationToken ct) =>
         TypedResults.Accepted((string?)null, new EmailConfirmationRequestResponse(await accounts.RequestEmailConfirmationAsync(request.Email, ct)));
 
-    /// <summary><c>DELETE /api/session</c>: 204 and the cookie is cleared, also when not logged in.</summary>
-    private static async Task<NoContent> Logout(IAccountService accounts, CancellationToken ct)
+    /// <summary>Log out</summary>
+    /// <remarks>204 and the cookie is cleared, also when not logged in.</remarks>
+    internal static async Task<NoContent> Logout(IAccountService accounts, CancellationToken ct)
     {
         await accounts.LogoutAsync(ct);
         return TypedResults.NoContent();
     }
 
-    /// <summary><c>GET /api/admin/staff</c>: 200 with every admin and mechanic, sorted by name.</summary>
-    private static async Task<Ok<IReadOnlyList<StaffUserResponse>>> GetStaff(IAccountService accounts, CancellationToken ct) =>
+    /// <summary>List the staff</summary>
+    /// <remarks>Admin only. Every admin and mechanic, sorted by name.</remarks>
+    internal static async Task<Ok<IReadOnlyList<StaffUserResponse>>> GetStaff(IAccountService accounts, CancellationToken ct) =>
         TypedResults.Ok(await accounts.GetStaffAsync(ct));
 
-    /// <summary><c>GET /api/admin/staff/{id}</c>: 200 with the staff member; 404 if unknown or a customer.</summary>
-    private static async Task<Ok<StaffUserResponse>> GetStaffMember(Guid id, IAccountService accounts, CancellationToken ct) =>
+    /// <summary>Get a staff member</summary>
+    /// <remarks>Admin only. 404 if unknown or a customer.</remarks>
+    internal static async Task<Ok<StaffUserResponse>> GetStaffMember(Guid id, IAccountService accounts, CancellationToken ct) =>
         TypedResults.Ok(await accounts.GetStaffMemberAsync(id, ct));
 
-    /// <summary><c>POST /api/admin/staff</c>: 201 with the new admin or mechanic and its <c>Location</c>; 409 if the email is taken.</summary>
-    private static async Task<CreatedAtRoute<StaffUserResponse>> CreateStaff(CreateStaffRequest request, IAccountService accounts, CancellationToken ct)
+    /// <summary>Add a staff member</summary>
+    /// <remarks>Admin only. An admin or mechanic, with a confirmed email. 201 with the new account and its <c>Location</c>; 409 if the email is taken.</remarks>
+    internal static async Task<CreatedAtRoute<StaffUserResponse>> CreateStaff(CreateStaffRequest request, IAccountService accounts, CancellationToken ct)
     {
         var created = await accounts.CreateStaffAsync(request, ct);
         return TypedResults.CreatedAtRoute(created, nameof(GetStaffMember), new { id = created.Id });
