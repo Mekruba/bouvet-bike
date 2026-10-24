@@ -34,3 +34,11 @@ reset-db:
 admin email password:
     cd backend && dotnet user-secrets set --project BouvetBike "Admin:Email" "{{email}}"
     cd backend && dotnet user-secrets set --project BouvetBike "Admin:Password" "{{password}}"
+
+# Build and start the app in Docker on http://localhost:8080 (needs .env, see .env.example)
+up:
+    docker compose up --build -d
+
+# Stop the Docker app (the data volume is kept)
+down:
+    docker compose down

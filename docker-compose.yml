@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      Admin__Email: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env (see .env.example)}
+      Admin__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env (see .env.example)}
+      # Trust X-Forwarded-For from nginx, so rate limiting sees the client's IP. The backend is not published.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  data:

@@ -10,3 +10,6 @@ obj/
 # Node
 node_modules/
 dist/
+
+# Docker compose
+.env
