@@ -79,7 +79,9 @@ Optional change request: estimated price shown before submit; admin can override
 
 ### Capacity and due dates
 
-- **Capacity is 5 orders per due date** (a configuration value). Per-date exceptions such as holidays are not a requirement and are left out.
+- **Each weekday has a default capacity** that admins set in the staff area (e.g. Mon–Fri 5, Sat 3, Sun 0 = closed). It starts at the configured `Capacity:MaxOrdersPerDay` (5) for every day.
+- **A single date can deviate** from its weekday default: extra capacity, less, or 0 to close it (holidays, short-staffed days), with an optional reason. Staff see it against the default, e.g. "6/5". Past dates can't be changed.
+- Lowering a date below what's already booked keeps the existing orders; the date simply shows as full.
 - Only orders that are not `Cancelled` count toward capacity.
 - When a requested date is full, the API rejects it and suggests the next available date.
 - The due date cannot be in the past; today is allowed. Staff can still edit an order whose due date has passed without changing the date.

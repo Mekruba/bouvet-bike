@@ -74,7 +74,7 @@ Folders are added as features are built (`Api/` and most of `Application/` come 
 
 ### Aggregates
 
-Three aggregates, plus Identity's users. Everything else is a value or a field on the order.
+Five aggregates, plus Identity's users. Everything else is a value or a field on the order.
 
 | Model | Module | Key fields |
 |---|---|---|
@@ -82,6 +82,8 @@ Three aggregates, plus Identity's users. Everything else is a value or a field o
 | ↳ OrderStatusChange | Orders | From, To, ChangedById?, ChangedAt, Reason?: the audit trail of the lifecycle |
 | **ServiceType** | Catalog | Name, Description?, BasePrice, EstimatedDuration, IsActive |
 | **DiscountCode** | Discounts | Code (unique), Type, Value, ValidFrom?, ValidTo?, MaxUses?, TimesUsed, IsActive |
+| **CapacitySchedule** | Orders | Monday … Sunday: default capacity per weekday (one schedule) |
+| **CapacityOverride** | Orders | Date (unique), MaxOrders (0 = closed), Reason? |
 
 **Order pricing:** `DiscountAmount` and `Total` are computed. The total is the price override if set, otherwise the service price minus the discount.
 
@@ -109,7 +111,7 @@ MaintenanceOrder ··▶ ServiceType, User?   (by ID, with foreign keys)
 | Completed and cancelled orders are read-only, except that the price can be overridden on completed orders | `MaintenanceOrder` |
 | Total = override ?? service price − discount; the discount never exceeds the price; one discount per order | `MaintenanceOrder`, `AppliedDiscount` |
 | Discount code validity window and usage limit | `DiscountCode` |
-| Max 5 orders per due date, suggest the next free date | `ICapacityService` (Orders): it spans many orders, so no single aggregate can enforce it |
+| A date takes at most its capacity (override, else weekday default) in non-cancelled orders; suggest the next open date | `ICapacityService` (Orders): it spans many orders, so no single aggregate can enforce it |
 
 ### Status lifecycle
 
@@ -232,6 +234,17 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `GET /api/admin/orders/{id}/status-changes/{changeId}` | staff | `GetStatusChangeAsync` |
 | `GET /api/admin/orders/{id}/price-override` | staff | `GetPriceOverrideAsync`; 404 when none is set |
 | `PUT` · `DELETE /api/admin/orders/{id}/price-override` | Admin | `SetPriceOverrideAsync` → **201 when created, 200 when replaced** (RFC 9110); `ClearPriceOverrideAsync` → 204, also when none is set (idempotent) |
+
+**Capacity settings** (test-first: `CapacitySettingsApiTests`):
+
+| Route | Access | Service method |
+|---|---|---|
+| `GET` · `PATCH /api/admin/capacity/schedule` | view: staff · change: Admin | `GetScheduleAsync`, `PatchScheduleAsync`: weekday defaults, JSON Patch on `/monday` … `/sunday` |
+| `GET /api/admin/capacity/overrides?from=&to=` | staff | `GetOverridesAsync` |
+| `PUT /api/admin/capacity/overrides/{date}` | Admin | `SetOverrideAsync` → 201 when created, 200 when replaced; the date (`yyyy-MM-dd`) is the natural key |
+| `DELETE /api/admin/capacity/overrides/{date}` | Admin | `RemoveOverrideAsync` → 204, idempotent |
+
+`GET /api/capacity` returns each day's `capacity` and its weekday `defaultCapacity`, so clients can show deviations ("6/5") and closed days.
 
 **Users** (test-first: `AccountApiTests`, `StaffApiTests`):
 
