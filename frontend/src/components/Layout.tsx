@@ -100,6 +100,9 @@ export function AdminLayout() {
         <NavLink to="/admin/service-types" className="subnav__link">
           Services
         </NavLink>
+        <NavLink to="/admin/capacity" className="subnav__link">
+          Capacity
+        </NavLink>
         {hasRole('Admin') && (
           <>
             <NavLink to="/admin/discount-codes" className="subnav__link">

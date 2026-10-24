@@ -4,6 +4,7 @@ import { RequireRole } from './auth/RequireRole.tsx'
 import { AdminLayout, SiteLayout } from './components/Layout.tsx'
 import { AdminOrderPage } from './pages/admin/AdminOrderPage.tsx'
 import { AdminOrdersPage } from './pages/admin/AdminOrdersPage.tsx'
+import { CapacityPage } from './pages/admin/CapacityPage.tsx'
 import { DiscountCodesPage } from './pages/admin/DiscountCodesPage.tsx'
 import { ServiceTypesPage } from './pages/admin/ServiceTypesPage.tsx'
 import { StaffPage } from './pages/admin/StaffPage.tsx'
@@ -49,6 +50,7 @@ function App() {
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="orders/:id" element={<AdminOrderPage />} />
             <Route path="service-types" element={<ServiceTypesPage />} />
+            <Route path="capacity" element={<CapacityPage />} />
             <Route
               path="discount-codes"
               element={

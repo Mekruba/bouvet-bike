@@ -3,6 +3,8 @@ import type {
   AdminOrder,
   AdminOrderQuery,
   AdminOrderSummary,
+  CapacityOverride,
+  CapacitySchedule,
   CreateDiscountCodeRequest,
   CreateServiceTypeRequest,
   CurrentUser,
@@ -57,6 +59,17 @@ export const adminOrdersApi = {
   setPriceOverride: (id: string, amount: number, reason: string) =>
     api<PriceOverride>(`/admin/orders/${id}/price-override`, { method: 'PUT', body: { amount, reason } }),
   clearPriceOverride: (id: string) => api<void>(`/admin/orders/${id}/price-override`, { method: 'DELETE' }),
+}
+
+export const capacityApi = {
+  schedule: () => api<CapacitySchedule>('/admin/capacity/schedule'),
+  patchSchedule: (patch: JsonPatchOperation[]) => api<CapacitySchedule>('/admin/capacity/schedule', { patch }),
+  overrides: (from?: string, to?: string) => api<CapacityOverride[]>(`/admin/capacity/overrides${query({ from, to })}`),
+  /** Sets or replaces one date's capacity; 0 closes it. */
+  setOverride: (date: string, maxOrders: number, reason: string | null) =>
+    api<CapacityOverride>(`/admin/capacity/overrides/${date}`, { method: 'PUT', body: { maxOrders, reason } }),
+  /** Back to the weekday default. */
+  removeOverride: (date: string) => api<void>(`/admin/capacity/overrides/${date}`, { method: 'DELETE' }),
 }
 
 export const discountsApi = {

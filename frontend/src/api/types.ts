@@ -51,9 +51,26 @@ export interface CreateServiceTypeRequest {
 export interface DayCapacity {
   date: string
   booked: number
+  /** This date's capacity: its override if it has one, otherwise the weekday default. */
   capacity: number
+  /** The weekday default, to show deviations like "6/5". */
+  defaultCapacity: number
   remaining: number
   isFull: boolean
+  isClosed: boolean
+  isAdjusted: boolean
+}
+
+export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+
+/** Default capacity per weekday; 0 is closed. */
+export type CapacitySchedule = Record<Weekday, number>
+
+export interface CapacityOverride {
+  date: string
+  maxOrders: number
+  defaultCapacity: number
+  reason: string | null
 }
 
 export interface OrderPrice {

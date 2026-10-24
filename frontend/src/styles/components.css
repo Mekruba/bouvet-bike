@@ -876,3 +876,25 @@
 .alert .input {
   color: var(--color-text);
 }
+
+/* Capacity tile extras: closed days and deviations from the weekday default ("6/5"). */
+.capacity__day {
+  position: relative;
+}
+
+.capacity__day.is-closed {
+  background: repeating-linear-gradient(-45deg, var(--gray-50), var(--gray-50) 6px, var(--gray-100) 6px, var(--gray-100) 12px);
+}
+
+.capacity__adjusted {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--orange-50);
+  color: #a3510c;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  line-height: 16px;
+}

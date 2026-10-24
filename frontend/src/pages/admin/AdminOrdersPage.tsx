@@ -146,6 +146,7 @@ export function AdminOrdersPage() {
               days={capacity.data}
               selected={selectedDay}
               allowFull
+              detailed
               onSelect={(day) =>
                 update(selectedDay === day ? { dueFrom: undefined, dueTo: undefined } : { dueFrom: day, dueTo: day })
               }
