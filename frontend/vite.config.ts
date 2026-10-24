@@ -7,8 +7,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     // Backend runs on :5080 (see backend launchSettings.json); same-origin in dev, no CORS needed.
+    // API_PROXY_TARGET points a second dev server at another backend, e.g. to run checks beside `just dev`.
     proxy: {
-      '/api': 'http://localhost:5080',
+      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:5080',
     },
   },
   test: {
