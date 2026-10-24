@@ -2,7 +2,7 @@
 
 ## Tools
 
-<!-- TODO -->
+**Claude Code** with Opus 5.5
 
 ## Where AI provided value
 
