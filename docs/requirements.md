@@ -3,32 +3,32 @@
 ## Assignment (source)
 
 Customer portal:
-- [ ] Place a maintenance order
-- [ ] View order details/status by reference, email, or phone number
-- [ ] Add or update notes before the repair has started
-- [ ] Confirmation after submitting the order
+- [x] Place a maintenance order
+- [x] View order details/status by reference, email, or phone number
+- [x] Add or update notes before the repair has started
+- [x] Confirmation after submitting the order
 
 Admin page:
-- [ ] View, search, and filter orders
-- [ ] Edit or delete an order
-- [ ] Change status (New, In progress, Waiting for customer, Completed, Cancelled)
-- [ ] Basic capacity / due-date information
+- [x] View, search, and filter orders
+- [x] Edit or delete an order
+- [x] Change status (New, In progress, Waiting for customer, Completed, Cancelled)
+- [x] Basic capacity / due-date information
 
 Order data: customer name, phone, email, bike brand, service type (Wheel adjustment, Chain replacement, Brake maintenance), expected due date, notes (optional).
 
 Technical:
-- [ ] Persisted in a database
-- [ ] Input validation and meaningful error handling
-- [ ] Basic automated tests
-- [ ] API documentation or architectural overview
-- [ ] Separation between customer and admin functionality
+- [x] Persisted in a database
+- [x] Input validation and meaningful error handling
+- [x] Basic automated tests
+- [x] API documentation or architectural overview
+- [x] Separation between customer and admin functionality
 
 Business logic (at least one):
-- [ ] Service pricing with total cost and discount codes
-- [ ] Due-date validation: max five orders per day, suggest next available date
-- [ ] Order status lifecycle with valid/invalid transitions
+- [x] Service pricing with total cost and discount codes
+- [x] Due-date validation: max five orders per day, suggest next available date
+- [x] Order status lifecycle with valid/invalid transitions
 
-Optional change request: estimated price shown before submit; admin can override the final price.
+- [x] Optional change request: estimated price shown before submit; admin can override the final price. **Implemented:** the booking page shows a live estimate (`GET /api/price-quotes`, which checks a discount code without using it up), and admins set a final price with a reason the customer sees (`PUT /api/admin/orders/{id}/price-override`). The calculated price is kept alongside the override.
 
 ## Interpretation and assumptions
 

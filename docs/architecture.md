@@ -21,16 +21,17 @@ One project (`backend/BouvetBike`), split into **modules by business area**. Eac
 
 ```
 BouvetBike/
-├── Orders/      Domain/ Persistence/            MaintenanceOrder and its status history
-├── Catalog/     Domain/ Persistence/            ServiceType (services and prices)
-├── Discounts/   Domain/ Persistence/            DiscountCode
-├── Users/                                       ApplicationUser, Roles (Identity, so no Domain/)
-├── Shared/      Domain/ Persistence/ Api/       Entity, Money, Email, PhoneNumber, DomainException;
-│                                                AppDbContext, seeding; error handling, health
-└── Program.cs
+├── Orders/      Api Contracts Application Domain Persistence
+│                orders, status history, price override, capacity (weekday schedule, date overrides), guest lookup
+├── Catalog/     Api Contracts Application Domain Persistence      service types and prices
+├── Discounts/   Api Contracts Application Domain Persistence      discount codes
+├── Users/       Api Contracts Application Persistence             accounts, sessions, email confirmation, staff
+│                + ApplicationUser, Roles, Policies at the root (Identity, so no Domain/)
+├── Shared/      Api Contracts Application Domain Persistence
+│                error handling, health; ICurrentUser, paging; exceptions; Entity, Money, Email, PhoneNumber;
+│                AppDbContext, conventions, seeding
+└── Program.cs   composition root: registers and maps every module
 ```
-
-Folders are added as features are built (`Api/` and most of `Application/` come with the endpoints).
 
 **Dependency rules** (enforced by `ArchitectureTests`):
 - `*.Domain` never depends on EF Core, ASP.NET, Identity or any `Api`/`Contracts`/`Application`/`Persistence` folder.
@@ -96,6 +97,7 @@ Five aggregates, plus Identity's users. Everything else is a value or a field on
 
 ```
 MaintenanceOrder ── OrderStatusChange*        ServiceType        DiscountCode
+CapacitySchedule (one: weekday defaults)      CapacityOverride* (one per date)
 
 MaintenanceOrder ··▶ ServiceType, User?   (by ID, with foreign keys)
 ```
@@ -158,9 +160,9 @@ frontend/src/
 │                endpoints.ts (one typed function per endpoint), useApi.ts (load, reload, replace)
 ├── auth/        AuthProvider (current user from GET /api/users/me), useAuth, RequireRole (route guard)
 ├── components/  Button, Card, Field (TextField, SelectField, TextAreaField, Checkbox), Alert, DataTable,
-│                Pagination, Dialog / ConfirmDialog, StatusBadge, CapacityStrip, PriceSummary, Layout
+│                Pagination, Dialog / ConfirmDialog, StatusBadge, CapacityStrip, PriceSummary, OrderSummaryTable, Layout
 ├── lib/         format.ts (money, dates, labels), useForm.ts (form state + API errors), jsonPatch.ts (diffPatch),
-│                orderAccess.ts (guest contact in sessionStorage)
+│                orderAccess.ts (the last order search, in sessionStorage)
 ├── pages/       customer pages; pages/admin/ for the staff area
 └── styles/      tokens.css, base.css, layout.css, components.css: the only CSS, imported once
 ```
