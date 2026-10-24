@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BouvetBike.Orders.Application;
 
+/// <summary>The staff side of orders: search, edits, the status lifecycle, price overrides and deletion.</summary>
 public sealed class AdminOrderService(
     AppDbContext db,
     ICatalogService catalog,
@@ -20,6 +21,7 @@ public sealed class AdminOrderService(
     ICurrentUser currentUser,
     TimeProvider clock) : IAdminOrderService
 {
+    /// <inheritdoc />
     public async Task<PagedResponse<AdminOrderSummaryResponse>> SearchAsync(AdminOrderQuery query, CancellationToken ct)
     {
         var orders = db.MaintenanceOrders.IgnoreAutoIncludes().AsNoTracking();
@@ -62,9 +64,11 @@ public sealed class AdminOrderService(
         return new PagedResponse<AdminOrderSummaryResponse>(items, query.Page, query.PageSize, totalCount);
     }
 
+    /// <inheritdoc />
     public async Task<AdminOrderResponse> GetAsync(Guid id, CancellationToken ct) =>
         await ToResponseAsync(await LoadAsync(id, ct), ct);
 
+    /// <inheritdoc />
     public async Task<AdminOrderResponse> PatchAsync(Guid id, JsonPatchDocument<AdminOrderPatch> patch, CancellationToken ct)
     {
         var order = await LoadAsync(id, ct);
@@ -121,12 +125,14 @@ public sealed class AdminOrderService(
         return await ToResponseAsync(order, ct);
     }
 
+    /// <inheritdoc />
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
         db.MaintenanceOrders.Remove(await LoadAsync(id, ct));
         await db.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<StatusChangeResponse> AddStatusChangeAsync(Guid id, ChangeStatusRequest request, CancellationToken ct)
     {
         var order = await LoadAsync(id, ct);
@@ -137,6 +143,7 @@ public sealed class AdminOrderService(
         return ToResponse(order.StatusHistory[^1], names);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<StatusChangeResponse>> GetStatusChangesAsync(Guid id, CancellationToken ct)
     {
         var order = await LoadAsync(id, ct);
@@ -144,6 +151,7 @@ public sealed class AdminOrderService(
         return order.StatusHistory.OrderBy(c => c.ChangedAt).Select(c => ToResponse(c, names)).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<StatusChangeResponse> GetStatusChangeAsync(Guid id, Guid changeId, CancellationToken ct)
     {
         var order = await LoadAsync(id, ct);
@@ -152,6 +160,7 @@ public sealed class AdminOrderService(
         return ToResponse(change, await UserNamesAsync(order, ct));
     }
 
+    /// <inheritdoc />
     public async Task<PriceOverrideResponse> GetPriceOverrideAsync(Guid id, CancellationToken ct)
     {
         var order = await LoadAsync(id, ct);
@@ -159,6 +168,7 @@ public sealed class AdminOrderService(
         return ToResponse(priceOverride, await UserNamesAsync(order, ct));
     }
 
+    /// <inheritdoc />
     public async Task<(PriceOverrideResponse Override, bool Created)> SetPriceOverrideAsync(
         Guid id, OverridePriceRequest request, CancellationToken ct)
     {
@@ -171,6 +181,7 @@ public sealed class AdminOrderService(
         return (ToResponse(order.PriceOverride!, await UserNamesAsync(order, ct)), created);
     }
 
+    /// <inheritdoc />
     public async Task ClearPriceOverrideAsync(Guid id, CancellationToken ct)
     {
         var order = await LoadAsync(id, ct);
@@ -197,6 +208,7 @@ public sealed class AdminOrderService(
             || (phone != null && o.Contact.Phone == phone));
     }
 
+    /// <summary>Orders by the chosen column, then by creation time and ID, so pages don't shift between requests.</summary>
     private static IQueryable<MaintenanceOrder> Sort(IQueryable<MaintenanceOrder> orders, OrderSort sort, bool descending)
     {
         var sorted = (sort, descending) switch
@@ -214,10 +226,13 @@ public sealed class AdminOrderService(
         return sorted.ThenBy(o => o.CreatedAt).ThenBy(o => o.Id); // stable pages
     }
 
+    /// <summary>The order with its status history, tracked for changes.</summary>
+    /// <exception cref="NotFoundException">Unknown ID.</exception>
     private async Task<MaintenanceOrder> LoadAsync(Guid id, CancellationToken ct) =>
         await db.MaintenanceOrders.SingleOrDefaultAsync(o => o.Id == id, ct)
         ?? throw new NotFoundException($"Order {id} was not found.");
 
+    /// <summary>The order's current values as the patch target; also kept unpatched to see what a patch changed.</summary>
     private static AdminOrderPatch ToPatchModel(MaintenanceOrder order) => new()
     {
         Name = order.Contact.Name,
@@ -231,6 +246,7 @@ public sealed class AdminOrderService(
         DiscountCode = order.Discount?.Code,
     };
 
+    /// <summary>Whether the customer, bike or due date changed: the details that lock once an order is completed or cancelled.</summary>
     private static bool DetailsChanged(AdminOrderPatch before, AdminOrderPatch after) =>
         before.Name != after.Name
         || before.Email != after.Email
@@ -239,9 +255,11 @@ public sealed class AdminOrderService(
         || before.BikeModel != after.BikeModel
         || before.DueDate != after.DueDate;
 
+    /// <summary>The code in stored form, or null when the patch removes it (empty or whitespace).</summary>
     private static string? NormalizeCode(string? code) =>
         string.IsNullOrWhiteSpace(code) ? null : DiscountCode.Normalize(code);
 
+    /// <summary>The parsed value object, or null when the search term isn't valid in that form.</summary>
     private static T? TryParse<T>(Func<T> parse) where T : class
     {
         try
@@ -265,15 +283,19 @@ public sealed class AdminOrderService(
         return await db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Name, ct);
     }
 
+    /// <summary>A history entry, with the staff member's name instead of their ID.</summary>
     private static StatusChangeResponse ToResponse(OrderStatusChange change, Dictionary<Guid, string> names) =>
         new(change.Id, change.From, change.To, NameOf(change.ChangedById, names), change.ChangedAt, change.Reason);
 
+    /// <summary>The override, with the admin's name instead of their ID.</summary>
     private static PriceOverrideResponse ToResponse(PriceOverride priceOverride, Dictionary<Guid, string> names) =>
         new(MoneyResponse.From(priceOverride.Amount), priceOverride.Reason, NameOf(priceOverride.OverriddenById, names), priceOverride.OverriddenAt);
 
+    /// <summary>The user's name; null for a system change (no user) or a deleted account.</summary>
     private static string? NameOf(Guid? userId, Dictionary<Guid, string> names) =>
         userId is { } id ? names.GetValueOrDefault(id) : null;
 
+    /// <summary>The full staff view of an order, including the status moves allowed from its current status.</summary>
     private async Task<AdminOrderResponse> ToResponseAsync(MaintenanceOrder order, CancellationToken ct)
     {
         var names = await UserNamesAsync(order, ct);

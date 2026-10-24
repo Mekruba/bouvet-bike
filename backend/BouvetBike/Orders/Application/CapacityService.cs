@@ -9,12 +9,14 @@ using Microsoft.Extensions.Options;
 
 namespace BouvetBike.Orders.Application;
 
+/// <summary>How many orders each date takes: weekday defaults, per-date overrides, and the bookings counted against them.</summary>
 public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> options, TimeProvider clock) : ICapacityService
 {
     private const int DefaultOverrideRangeDays = 60;
 
     private DateOnly Today => DateOnly.FromDateTime(clock.GetLocalNow().Date);
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<DayCapacityResponse>> GetAsync(CapacityQuery query, CancellationToken ct)
     {
         var from = query.From ?? Today;
@@ -28,11 +30,14 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task EnsureAvailableAsync(DateOnly date, Guid? ignoreOrderId, CancellationToken ct)
     {
         var searchEnd = date.AddDays(options.Value.SearchDays);
         var capacity = await CapacityCalendarAsync(date, searchEnd, ct);
         var booked = await CountPerDayAsync(date, searchEnd, ignoreOrderId, ct);
+
+        // Whether the day can take one more order: fewer bookings than its capacity (a closed day never can).
         bool HasRoom(DateOnly day) => booked.GetValueOrDefault(day) < capacity.For(day);
 
         if (HasRoom(date))
@@ -52,9 +57,11 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
             $"{date:yyyy-MM-dd} is fully booked, and so is every day in the {options.Value.SearchDays} days after it.");
     }
 
+    /// <inheritdoc />
     public async Task<CapacityScheduleResponse> GetScheduleAsync(CancellationToken ct) =>
         ToResponse(await ScheduleAsync(ct));
 
+    /// <inheritdoc />
     public async Task<CapacityScheduleResponse> PatchScheduleAsync(JsonPatchDocument<CapacitySchedulePatch> patch, CancellationToken ct)
     {
         var schedule = await ScheduleAsync(ct);
@@ -83,6 +90,7 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
         return ToResponse(schedule);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<CapacityOverrideResponse>> GetOverridesAsync(CapacityOverrideQuery query, CancellationToken ct)
     {
         var from = query.From ?? Today;
@@ -92,6 +100,7 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
         return overrides.Select(o => ToResponse(o, schedule)).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<(CapacityOverrideResponse Override, bool Created)> SetOverrideAsync(
         DateOnly date, SetCapacityOverrideRequest request, CancellationToken ct)
     {
@@ -111,6 +120,7 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
         return (ToResponse(existing, await ScheduleAsync(ct)), created);
     }
 
+    /// <inheritdoc />
     public async Task RemoveOverrideAsync(DateOnly date, CancellationToken ct)
     {
         if (await db.CapacityOverrides.SingleOrDefaultAsync(o => o.Date == date, ct) is { } existing)
@@ -147,10 +157,13 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
         return new CapacityCalendar(schedule, overrides);
     }
 
+    /// <summary>The schedule and the overrides in a date range, to look up any date in it without more queries.</summary>
     private sealed record CapacityCalendar(CapacitySchedule Schedule, Dictionary<DateOnly, int> Overrides)
     {
+        /// <summary>The weekday default for the date, ignoring overrides.</summary>
         public int DefaultFor(DateOnly date) => Schedule.ForDay(date.DayOfWeek);
 
+        /// <summary>The capacity that applies on the date: its override, or the weekday default.</summary>
         public int For(DateOnly date) => Overrides.TryGetValue(date, out var capacity) ? capacity : DefaultFor(date);
     }
 
@@ -162,9 +175,11 @@ public sealed class CapacityService(AppDbContext db, IOptions<CapacityOptions> o
             .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Date, x => x.Count, ct);
 
+    /// <summary>The weekday defaults as the API shows them.</summary>
     private static CapacityScheduleResponse ToResponse(CapacitySchedule s) =>
         new(s.Monday, s.Tuesday, s.Wednesday, s.Thursday, s.Friday, s.Saturday, s.Sunday);
 
+    /// <summary>An override next to its weekday default, so clients can show e.g. "6/5".</summary>
     private static CapacityOverrideResponse ToResponse(CapacityOverride o, CapacitySchedule schedule) =>
         new(o.Date, o.MaxOrders, schedule.ForDay(o.Date.DayOfWeek), o.Reason);
 }

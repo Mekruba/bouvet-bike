@@ -8,8 +8,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BouvetBike.Orders.Persistence;
 
+/// <summary>Table mapping for <see cref="MaintenanceOrder"/>.</summary>
 public class MaintenanceOrderConfiguration : IEntityTypeConfiguration<MaintenanceOrder>
 {
+    /// <summary>
+    /// Value objects stored inline (contact, prices, discount and override as complex types), a unique reference,
+    /// indexes for the capacity count and status filter, and the status history as a child table loaded with the order.
+    /// </summary>
     public void Configure(EntityTypeBuilder<MaintenanceOrder> builder)
     {
         builder.Property(o => o.Reference)
@@ -54,8 +59,10 @@ public class MaintenanceOrderConfiguration : IEntityTypeConfiguration<Maintenanc
     }
 }
 
+/// <summary>Table mapping for <see cref="OrderStatusChange"/>.</summary>
 public class OrderStatusChangeConfiguration : IEntityTypeConfiguration<OrderStatusChange>
 {
+    /// <summary>The staff reference is cleared, not the history entry, if the user is deleted.</summary>
     public void Configure(EntityTypeBuilder<OrderStatusChange> builder)
     {
         builder.ToTable("OrderStatusChanges");

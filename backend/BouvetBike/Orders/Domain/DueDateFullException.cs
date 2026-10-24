@@ -5,8 +5,10 @@ namespace BouvetBike.Orders.Domain;
 /// <summary>The requested due date has no capacity left. Tells the client the next date that has.</summary>
 public sealed class DueDateFullException : DomainException
 {
+    /// <summary>The first date after the requested one that still has room.</summary>
     public DateOnly NextAvailableDate { get; }
 
+    /// <summary>The message names both dates; <c>nextAvailableDate</c> is also added to the problem response.</summary>
     public DueDateFullException(DateOnly requested, DateOnly nextAvailable)
         : base($"{requested:yyyy-MM-dd} is fully booked. The next available date is {nextAvailable:yyyy-MM-dd}.")
     {

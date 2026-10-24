@@ -18,14 +18,17 @@ public sealed class CapacitySchedulePatch
     [Range(0, CapacitySchedule.MaxPerDay)] public int Sunday { get; set; }
 }
 
+/// <summary>The capacity for one date: <c>PUT /api/admin/capacity/overrides/{date}</c>.</summary>
 /// <param name="MaxOrders">Capacity for the date; 0 closes it.</param>
 public sealed record SetCapacityOverrideRequest(
     [Required, Range(0, CapacitySchedule.MaxPerDay)] int? MaxOrders,
     [StringLength(CapacityOverride.ReasonMaxLength)] string? Reason);
 
+/// <summary>A date whose capacity differs from its weekday default.</summary>
 /// <param name="DefaultCapacity">The weekday default it replaces, to show e.g. "6/5".</param>
 public sealed record CapacityOverrideResponse(DateOnly Date, int MaxOrders, int DefaultCapacity, string? Reason);
 
+/// <summary>Which overrides <c>GET /api/admin/capacity/overrides</c> lists, bound from the query string.</summary>
 /// <param name="From">First date; defaults to today.</param>
 /// <param name="To">Last date; defaults to 60 days after From.</param>
 public sealed record CapacityOverrideQuery(DateOnly? From = null, DateOnly? To = null);

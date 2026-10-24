@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BouvetBike.Orders.Application;
 
+/// <summary>The customer side of orders: quotes, placing, lookup by reference or contact, and notes.</summary>
 public sealed class CustomerOrderService(
     AppDbContext db,
     ICatalogService catalog,
@@ -19,6 +20,7 @@ public sealed class CustomerOrderService(
     ICurrentUser currentUser,
     TimeProvider clock) : ICustomerOrderService
 {
+    /// <inheritdoc />
     public async Task<OrderPriceResponse> QuoteAsync(PriceQuoteQuery query, CancellationToken ct)
     {
         var service = await catalog.GetOrderableServiceAsync(query.ServiceTypeId!.Value, ct);
@@ -33,6 +35,7 @@ public sealed class CustomerOrderService(
             IsOverridden: false);
     }
 
+    /// <inheritdoc />
     public async Task<CustomerOrderResponse> PlaceAsync(PlaceOrderRequest request, CancellationToken ct)
     {
         var contact = new ContactInfo(request.Name, Email.Create(request.Email), PhoneNumber.Create(request.Phone));
@@ -54,9 +57,11 @@ public sealed class CustomerOrderService(
         return ToResponse(order);
     }
 
+    /// <inheritdoc />
     public async Task<CustomerOrderResponse> GetAsync(string reference, CancellationToken ct) =>
         ToResponse(await FindAsync(reference, ct));
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<CustomerOrderSummaryResponse>> FindByContactAsync(string contact, CancellationToken ct)
     {
         var orders = db.MaintenanceOrders.IgnoreAutoIncludes().AsNoTracking();
@@ -74,6 +79,7 @@ public sealed class CustomerOrderService(
         return (await orders.OrderByDescending(o => o.CreatedAt).ToListAsync(ct)).Select(o => o.ToSummaryResponse()).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<CustomerOrderResponse> PatchAsync(string reference, JsonPatchDocument<CustomerOrderPatch> patch, CancellationToken ct)
     {
         var order = await FindAsync(reference, ct);
@@ -94,6 +100,7 @@ public sealed class CustomerOrderService(
         return ToResponse(order);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<CustomerOrderSummaryResponse>> GetMyOrdersAsync(CancellationToken ct)
     {
         var customerId = currentUser.Id ?? throw new InvalidOperationException("Requires a logged-in customer.");
@@ -114,6 +121,7 @@ public sealed class CustomerOrderService(
             : throw notFound;
     }
 
+    /// <summary>The value as a phone number, or null if it isn't one.</summary>
     private static PhoneNumber? TryPhone(string value)
     {
         try
@@ -126,6 +134,7 @@ public sealed class CustomerOrderService(
         }
     }
 
+    /// <summary>The order as the customer sees it: no internal notes or staff details.</summary>
     private static CustomerOrderResponse ToResponse(MaintenanceOrder order) => new(
         order.Reference.Value,
         order.Status,

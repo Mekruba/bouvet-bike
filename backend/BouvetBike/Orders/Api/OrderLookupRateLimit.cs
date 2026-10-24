@@ -11,6 +11,7 @@ public sealed class OrderLookupLimitOptions
 {
     public const string Section = "RateLimiting:OrderLookups";
 
+    /// <summary>Lookups allowed per client IP per minute.</summary>
     [Range(1, 1_000_000)]
     public int PermitsPerMinute { get; init; } = 30;
 }
@@ -21,8 +22,13 @@ public sealed class OrderLookupLimitOptions
 /// </summary>
 public static class OrderLookupRateLimit
 {
+    /// <summary>The policy name, for <c>RequireRateLimiting</c> on the lookup endpoints.</summary>
     public const string Policy = "order-lookup";
 
+    /// <summary>
+    /// Registers the rate limiter with the <see cref="Policy"/> policy, partitioned by client IP. Behind a proxy that IP
+    /// is only right with forwarded headers enabled (<c>ASPNETCORE_FORWARDEDHEADERS_ENABLED</c>, set in Docker).
+    /// </summary>
     public static IServiceCollection AddOrderLookupRateLimit(this IServiceCollection services)
     {
         services.AddOptions<OrderLookupLimitOptions>().BindConfiguration(OrderLookupLimitOptions.Section).ValidateDataAnnotations().ValidateOnStart();

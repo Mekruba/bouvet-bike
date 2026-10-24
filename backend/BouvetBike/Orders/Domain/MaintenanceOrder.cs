@@ -54,6 +54,12 @@ public sealed class MaintenanceOrder : AggregateRoot
 
     private MaintenanceOrder() { } // EF Core
 
+    /// <summary>
+    /// A new order with status New and a fresh reference. The service's name and price are copied onto it.
+    /// The caller checks the date's capacity, which spans other orders.
+    /// </summary>
+    /// <param name="customerId">The logged-in customer placing it; null for a guest.</param>
+    /// <exception cref="DomainException">Missing or too long fields, a retired service, or a due date in the past.</exception>
     public static MaintenanceOrder Place(
         ContactInfo contact,
         string bikeBrand,
@@ -84,6 +90,8 @@ public sealed class MaintenanceOrder : AggregateRoot
     }
 
     /// <summary>Staff edit of the order details. Not allowed once the order is completed or cancelled.</summary>
+    /// <exception cref="StateConflictException">The order is completed or cancelled.</exception>
+    /// <exception cref="DomainException">Missing or too long fields, or a new due date in the past.</exception>
     public void UpdateDetails(ContactInfo contact, string bikeBrand, string? bikeModel, DateOnly dueDate, TimeProvider clock)
     {
         EnsureNotClosed();
@@ -102,6 +110,8 @@ public sealed class MaintenanceOrder : AggregateRoot
     }
 
     /// <summary>Switches to another service, priced from the catalog now. Choosing the current service again keeps its original price.</summary>
+    /// <exception cref="StateConflictException">The order is completed or cancelled.</exception>
+    /// <exception cref="DomainException">The new service is retired.</exception>
     public void ChangeService(ServiceType service, TimeProvider clock)
     {
         EnsureNotClosed();
@@ -112,7 +122,11 @@ public sealed class MaintenanceOrder : AggregateRoot
         }
     }
 
-    /// <summary>Links a guest order to a customer account (e.g. when the guest registers with the order's email).</summary>
+    /// <summary>
+    /// Links a guest order to a customer account (when the customer confirms the order's email).
+    /// Linking to the same account again does nothing.
+    /// </summary>
+    /// <exception cref="StateConflictException">The order already belongs to another account.</exception>
     public void LinkToCustomer(Guid customerId, TimeProvider clock)
     {
         Guard.NotEmpty(customerId, "Customer");
@@ -130,6 +144,9 @@ public sealed class MaintenanceOrder : AggregateRoot
         Touch(clock);
     }
 
+    /// <summary>Moves the order to a new status and records who, when and why in <see cref="StatusHistory"/>.</summary>
+    /// <param name="changedById">The staff member making the change.</param>
+    /// <exception cref="StateConflictException">The move isn't allowed from the current status (see <see cref="OrderStatusTransitions"/>).</exception>
     public void ChangeStatus(OrderStatus newStatus, Guid? changedById, TimeProvider clock, string? reason = null)
     {
         if (!OrderStatusTransitions.CanTransition(Status, newStatus))
@@ -144,6 +161,8 @@ public sealed class MaintenanceOrder : AggregateRoot
     }
 
     /// <summary>Customers may add or change their notes until the repair has started. Empty clears them.</summary>
+    /// <exception cref="StateConflictException">The status is no longer New.</exception>
+    /// <exception cref="DomainException">Longer than <see cref="NotesMaxLength"/>.</exception>
     public void UpdateCustomerNotes(string? notes, TimeProvider clock)
     {
         if (Status != OrderStatus.New)
@@ -155,7 +174,8 @@ public sealed class MaintenanceOrder : AggregateRoot
         Touch(clock);
     }
 
-    /// <summary>Staff notes, allowed at any status.</summary>
+    /// <summary>Staff notes, allowed at any status. Empty clears them.</summary>
+    /// <exception cref="DomainException">Longer than <see cref="NotesMaxLength"/>.</exception>
     public void UpdateInternalNotes(string? notes, TimeProvider clock)
     {
         InternalNotes = Guard.Optional(notes, "Internal notes", NotesMaxLength);
@@ -163,6 +183,7 @@ public sealed class MaintenanceOrder : AggregateRoot
     }
 
     /// <summary>Applies terms from <see cref="DiscountCode.Redeem"/>. One discount code per order.</summary>
+    /// <exception cref="StateConflictException">The order is completed or cancelled, or already has a code.</exception>
     public void ApplyDiscount(AppliedDiscount discount, TimeProvider clock)
     {
         EnsureNotClosed();
@@ -175,6 +196,8 @@ public sealed class MaintenanceOrder : AggregateRoot
         Touch(clock);
     }
 
+    /// <summary>Removes the discount code. The use it counted on the code isn't given back.</summary>
+    /// <exception cref="StateConflictException">The order is completed or cancelled.</exception>
     public void RemoveDiscount(TimeProvider clock)
     {
         EnsureNotClosed();
@@ -183,6 +206,8 @@ public sealed class MaintenanceOrder : AggregateRoot
     }
 
     /// <summary>Sets the final price. Allowed on completed orders (that's when the final price is known), not on cancelled ones.</summary>
+    /// <param name="reason">Shown to the customer next to the price.</param>
+    /// <exception cref="StateConflictException">The order is cancelled.</exception>
     public void OverridePrice(Money amount, string reason, Guid staffId, TimeProvider clock)
     {
         EnsureNotCancelled();
@@ -191,6 +216,8 @@ public sealed class MaintenanceOrder : AggregateRoot
         UpdatedAt = now;
     }
 
+    /// <summary>Goes back to the calculated price. Also fine when no override is set.</summary>
+    /// <exception cref="StateConflictException">The order is cancelled.</exception>
     public void ClearPriceOverride(TimeProvider clock)
     {
         EnsureNotCancelled();
@@ -198,6 +225,8 @@ public sealed class MaintenanceOrder : AggregateRoot
         Touch(clock);
     }
 
+    /// <summary>Copies the service's ID, name and current price onto the order.</summary>
+    /// <exception cref="DomainException">The service is retired.</exception>
     private void SetService(ServiceType service)
     {
         if (!service.IsActive)
@@ -210,6 +239,8 @@ public sealed class MaintenanceOrder : AggregateRoot
         ServicePrice = service.BasePrice;
     }
 
+    /// <summary>Sets the due date; today or later, in the shop's local time.</summary>
+    /// <exception cref="DomainException">The date is in the past.</exception>
     private void SetDueDate(DateOnly dueDate, TimeProvider clock)
     {
         if (dueDate < DateOnly.FromDateTime(clock.GetLocalNow().Date))
@@ -220,6 +251,7 @@ public sealed class MaintenanceOrder : AggregateRoot
         DueDate = dueDate;
     }
 
+    /// <summary>Completed and cancelled orders are final: their details, service and discount can't change.</summary>
     private void EnsureNotClosed()
     {
         if (Status.IsTerminal())
@@ -228,6 +260,7 @@ public sealed class MaintenanceOrder : AggregateRoot
         }
     }
 
+    /// <summary>For changes still allowed on completed orders, such as the final price.</summary>
     private void EnsureNotCancelled()
     {
         if (Status == OrderStatus.Cancelled)
@@ -236,5 +269,6 @@ public sealed class MaintenanceOrder : AggregateRoot
         }
     }
 
+    /// <summary>Records that the order changed now.</summary>
     private void Touch(TimeProvider clock) => UpdatedAt = clock.GetUtcNow().UtcDateTime;
 }

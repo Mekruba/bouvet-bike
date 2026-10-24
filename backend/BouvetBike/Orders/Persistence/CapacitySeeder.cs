@@ -9,6 +9,7 @@ namespace BouvetBike.Orders.Persistence;
 /// <summary>Creates the weekday schedule at startup, from <c>Capacity:MaxOrdersPerDay</c>, if there isn't one.</summary>
 public static class CapacitySeeder
 {
+    /// <summary>Runs on every start; does nothing once the schedule exists, so admins' changes are kept.</summary>
     public static async Task SeedAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<AppDbContext>();

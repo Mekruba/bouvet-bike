@@ -13,6 +13,8 @@ public sealed record ContactInfo
 
     private ContactInfo() { } // EF Core
 
+    /// <summary>Contact details from already validated email and phone value objects.</summary>
+    /// <exception cref="DomainException">Missing or too long name.</exception>
     public ContactInfo(string name, Email email, PhoneNumber phone)
     {
         Name = Guard.Required(name, "Name", NameMaxLength);

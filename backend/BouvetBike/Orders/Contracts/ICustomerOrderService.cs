@@ -20,6 +20,7 @@ public interface ICustomerOrderService
     /// <exception cref="Shared.Domain.DomainException">Unknown or inactive service, past due date, invalid contact, or an unusable discount code.</exception>
     Task<CustomerOrderResponse> PlaceAsync(PlaceOrderRequest request, CancellationToken ct);
 
+    /// <summary>The order with this reference, as the customer sees it.</summary>
     /// <param name="reference">With or without the <c>BB-</c> prefix, any case. Knowing it is enough to see the order.</param>
     /// <exception cref="Shared.Application.NotFoundException">No such order.</exception>
     Task<CustomerOrderResponse> GetAsync(string reference, CancellationToken ct);
@@ -30,7 +31,8 @@ public interface ICustomerOrderService
 
     /// <summary>JSON Patch on <see cref="CustomerOrderPatch"/>: only <c>/notes</c>, only while the order is New.</summary>
     /// <exception cref="Shared.Application.NotFoundException">As for <see cref="GetAsync"/>.</exception>
-    /// <exception cref="Shared.Application.UnprocessableException">Other paths, invalid notes, or the repair has started.</exception>
+    /// <exception cref="Shared.Domain.StateConflictException">The repair has started.</exception>
+    /// <exception cref="Shared.Application.UnprocessableException">Other paths, or invalid notes.</exception>
     Task<CustomerOrderResponse> PatchAsync(string reference, JsonPatchDocument<CustomerOrderPatch> patch, CancellationToken ct);
 
     /// <summary>The logged-in customer's orders, newest first.</summary>

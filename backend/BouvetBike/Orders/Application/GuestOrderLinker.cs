@@ -8,6 +8,7 @@ namespace BouvetBike.Orders.Application;
 /// <summary>When a customer confirms their email, links the guest orders booked with that email to their account.</summary>
 public sealed class GuestOrderLinker(AppDbContext db, TimeProvider clock) : ICustomerAccountEvents
 {
+    /// <inheritdoc />
     public async Task CustomerEmailConfirmedAsync(Guid customerId, string email, CancellationToken ct)
     {
         var normalized = Email.Create(email);

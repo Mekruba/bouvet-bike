@@ -13,9 +13,12 @@ public static class OrderStatusTransitions
         [OrderStatus.Cancelled] = [],
     };
 
+    /// <summary>The statuses an order can move to from <paramref name="status"/>; the staff UI shows them as actions.</summary>
     public static IReadOnlyList<OrderStatus> From(OrderStatus status) => Allowed[status];
 
+    /// <summary>Whether an order may move from one status to the other.</summary>
     public static bool CanTransition(OrderStatus from, OrderStatus to) => Allowed[from].Contains(to);
 
+    /// <summary>A final status (Completed or Cancelled), with no moves out of it.</summary>
     public static bool IsTerminal(this OrderStatus status) => Allowed[status].Length == 0;
 }

@@ -28,6 +28,7 @@ public sealed class CapacitySchedule : AggregateRoot
         return schedule;
     }
 
+    /// <summary>The default capacity for the weekday.</summary>
     public int ForDay(DayOfWeek day) => day switch
     {
         DayOfWeek.Monday => Monday,
@@ -39,6 +40,8 @@ public sealed class CapacitySchedule : AggregateRoot
         _ => Sunday,
     };
 
+    /// <summary>Replaces all seven defaults at once; nothing changes if any value is invalid.</summary>
+    /// <exception cref="DomainException">A value is outside 0 to <see cref="MaxPerDay"/>.</exception>
     public void Update(int monday, int tuesday, int wednesday, int thursday, int friday, int saturday, int sunday)
     {
         int[] values = [monday, tuesday, wednesday, thursday, friday, saturday, sunday];

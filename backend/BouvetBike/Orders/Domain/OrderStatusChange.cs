@@ -15,6 +15,8 @@ public sealed class OrderStatusChange : Entity
 
     private OrderStatusChange() { } // EF Core
 
+    /// <summary>Created only by <see cref="MaintenanceOrder.ChangeStatus"/>, after the transition is checked.</summary>
+    /// <exception cref="DomainException">The reason is longer than <see cref="ReasonMaxLength"/>.</exception>
     internal OrderStatusChange(OrderStatus from, OrderStatus to, Guid? changedById, DateTime changedAt, string? reason)
     {
         From = from;

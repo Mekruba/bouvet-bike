@@ -14,6 +14,8 @@ public sealed record PriceOverride
 
     private PriceOverride() { } // EF Core
 
+    /// <summary>Created only by <see cref="MaintenanceOrder.OverridePrice"/>.</summary>
+    /// <exception cref="DomainException">Missing or too long reason, or no staff user.</exception>
     internal PriceOverride(Money amount, string reason, Guid overriddenById, DateTime overriddenAt)
     {
         Amount = amount;

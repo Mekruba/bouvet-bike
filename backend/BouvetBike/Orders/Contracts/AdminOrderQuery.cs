@@ -3,11 +3,19 @@ using BouvetBike.Orders.Domain;
 
 namespace BouvetBike.Orders.Contracts;
 
+/// <summary>Columns the admin order list can be sorted by. Ties are broken by creation time, so pages are stable.</summary>
 public enum OrderSort
 {
+    /// <summary>The default: what's due first.</summary>
     DueDate,
+
+    /// <summary>When the order was placed.</summary>
     CreatedAt,
+
+    /// <summary>Alphabetically, ignoring case.</summary>
     CustomerName,
+
+    /// <summary>By status name.</summary>
     Status,
 }
 
