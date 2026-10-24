@@ -62,3 +62,4 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 - Call the API only through `api/endpoints.ts`; add new endpoints there with types in `api/types.ts`. Edits send `diffPatch(original, edited, fields, optional)`.
 - Never put a guest's email or phone in a URL: `ordersApi.findByContact` sends it in the `Order-Contact` header. Order pages need only the reference.
 - Send `null`, not `""`, for empty optional or not-yet-chosen values (the API can't parse `""` as a Guid or date).
+- Customer accounts confirm their email before logging in. There's no email delivery: the API returns the link the email would contain (`emailConfirmationLink`) and the frontend navigates to it (`/confirm-email`). Pass the email in router state, never in the URL.
