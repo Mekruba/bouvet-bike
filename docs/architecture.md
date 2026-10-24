@@ -237,9 +237,11 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 
 | Route | Access | Service method |
 |---|---|---|
-| `POST /api/users` | anyone | `IAccountService.RegisterAsync`: a Customer account → 201, `Location: /api/users/me`, signed in; taken email → 409 |
+| `POST /api/users` | anyone | `IAccountService.RegisterAsync`: a Customer account with an unconfirmed email → 201, `Location: /api/users/me`, with `emailConfirmationLink` (stand-in for email); not signed in; taken email → 409 |
+| `POST /api/users/{id}/email-confirmation` | anyone with the token | `ConfirmEmailAsync` → 204 (idempotent); bad token → 400. Links the customer's guest orders |
+| `POST /api/email-confirmation-requests` | anyone | `RequestEmailConfirmationAsync` → 202, with a new link only for an unconfirmed account |
 | `GET /api/users/me` | logged in | `GetCurrentAsync` |
-| `POST /api/session` | anyone | `LoginAsync` → 200 with the user and a cookie; wrong email or password → 401 (same answer for both) |
+| `POST /api/session` | anyone | `LoginAsync` → 200 with the user and a cookie; wrong email or password → 401 (same answer for both); right password but unconfirmed email → 403 |
 | `DELETE /api/session` | anyone | `LogoutAsync` → 204 |
 | `GET` · `POST /api/admin/staff`, `GET /api/admin/staff/{id}` | Admin | `GetStaffAsync`, `CreateStaffAsync` → 201, `GetStaffMemberAsync` |
 

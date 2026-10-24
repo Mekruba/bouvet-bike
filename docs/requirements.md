@@ -36,7 +36,11 @@ Optional change request: estimated price shown before submit; admin can override
 
 - **Customers don't need an account.** The spec has customers find orders "using a simple reference, email, or phone number" and lists contact details as order data, so guest ordering is the default flow.
 - **Customer accounts are optional.** A logged-in customer gets prefilled contact details and a list of their orders. The order still stores its own contact details either way.
-- **Registering links your guest orders.** Orders booked as a guest with the same email (ignoring case) are linked to the new account and show up under "My orders". Orders already on another account stay there; phone numbers are not matched. Without email verification, registering with someone else's email would claim their guest orders. That is the same exposure as finding orders by email, accepted above; a real product would verify the email first.
+- **Customers confirm their email before they can log in.** Registering creates the account and a one-time confirmation link (Identity's email confirmation token). The password is typed twice on the registration page; that check is in the UI only, since the API doesn't need it.
+- **There is no email delivery** (out of scope), so the API returns the link that would have been emailed (`emailConfirmationLink`) and the frontend opens it directly: the confirm page the customer would reach from their inbox. With real email the field goes away, and receiving the link is what proves the address is theirs.
+- **Confirming the email links your guest orders.** Orders booked as a guest with the same email (ignoring case) are linked to the account and show up under "My orders". Orders already on another account stay there, and phone numbers are not matched. Only a confirmed email claims orders, which with real email delivery would stop anyone claiming someone else's bookings. In this simulation the link is in the response, so that protection only exists once real email is in place.
+- Staff accounts are created by an admin (and the first admin from configuration), so their email counts as confirmed.
+
 - **Staff must log in.** Admin and Mechanic are roles on a real user account (ASP.NET Core Identity). This is how customer and admin functionality are separated.
 
 ### Order lookup
