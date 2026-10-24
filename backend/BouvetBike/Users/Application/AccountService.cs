@@ -3,6 +3,7 @@ using System.Text;
 using BouvetBike.Shared.Application;
 using BouvetBike.Shared.Contracts;
 using BouvetBike.Shared.Domain;
+using BouvetBike.Shared.Persistence;
 using BouvetBike.Users.Contracts;
 using Microsoft.AspNetCore.Identity;
 
@@ -12,7 +13,8 @@ public sealed class AccountService(
     UserManager<ApplicationUser> users,
     SignInManager<ApplicationUser> signIn,
     ICurrentUser currentUser,
-    IEnumerable<ICustomerAccountEvents> accountEvents) : IAccountService
+    IEnumerable<ICustomerAccountEvents> accountEvents,
+    AppDbContext db) : IAccountService
 {
     private const string InvalidLink = "This confirmation link is invalid or has expired. Ask for a new one.";
 
@@ -33,6 +35,14 @@ public sealed class AccountService(
 
         if (DecodeToken(token) is not { } decoded || !(await users.ConfirmEmailAsync(user, decoded)).Succeeded)
         {
+            // Two requests at once (a double click, an email client opening the link first) both see an unconfirmed
+            // user; the loser fails Identity's concurrency check. If the other one confirmed it, that's a success.
+            await db.Entry(user).ReloadAsync(ct);
+            if (user.EmailConfirmed)
+            {
+                return;
+            }
+
             throw new DomainException(InvalidLink);
         }
 

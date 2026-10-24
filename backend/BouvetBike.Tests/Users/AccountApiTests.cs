@@ -109,6 +109,23 @@ public class AccountApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task ConfirmationLink_FollowedTwiceAtOnce_BothSucceed()
+    {
+        // A double click, or the page loading twice (React StrictMode in development), sends two requests at once.
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            var client = factory.CreateClient(role: null);
+            var registration = await client.RegisterOk(UniqueEmail());
+
+            var responses = await Task.WhenAll(
+                client.FollowConfirmationLink(registration.EmailConfirmationLink),
+                client.FollowConfirmationLink(registration.EmailConfirmationLink));
+
+            Assert.All(responses, r => Assert.Equal(HttpStatusCode.NoContent, r.StatusCode));
+        }
+    }
+
+    [Fact]
     public async Task ConfirmationLink_WithWrongToken_Is400()
     {
         var client = factory.CreateClient(role: null);
