@@ -22,11 +22,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signedIn
   }, [])
 
-  const register = useCallback(async (name: string, email: string, phone: string | null, password: string) => {
-    const created = await accountApi.register(name, email, phone, password)
-    setUser(created)
-    return created
-  }, [])
+  // Not signed in yet: the email has to be confirmed first.
+  const register = useCallback(
+    (name: string, email: string, phone: string | null, password: string) => accountApi.register(name, email, phone, password),
+    [],
+  )
 
   const logout = useCallback(async () => {
     await accountApi.logout()

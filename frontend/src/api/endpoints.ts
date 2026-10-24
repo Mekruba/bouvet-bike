@@ -10,12 +10,14 @@ import type {
   CustomerOrderSummary,
   DayCapacity,
   DiscountCode,
+  EmailConfirmationRequestResponse,
   JsonPatchOperation,
   OrderPrice,
   OrderStatus,
   Paged,
   PlaceOrderRequest,
   PriceOverride,
+  RegistrationResponse,
   Role,
   ServiceType,
   StaffUser,
@@ -65,8 +67,12 @@ export const discountsApi = {
 
 export const accountApi = {
   me: () => api<CurrentUser>('/users/me'),
+  /** Creates the account with an unconfirmed email; doesn't sign in. */
   register: (name: string, email: string, phone: string | null, password: string) =>
-    api<CurrentUser>('/users', { body: { name, email, phone, password } }),
+    api<RegistrationResponse>('/users', { body: { name, email, phone, password } }),
+  confirmEmail: (userId: string, token: string) => api<void>(`/users/${userId}/email-confirmation`, { body: { token } }),
+  requestEmailConfirmation: (email: string) =>
+    api<EmailConfirmationRequestResponse>('/email-confirmation-requests', { body: { email } }),
   login: (email: string, password: string, rememberMe: boolean) =>
     api<CurrentUser>('/session', { body: { email, password, rememberMe } }),
   logout: () => api<void>('/session', { method: 'DELETE' }),

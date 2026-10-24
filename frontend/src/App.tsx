@@ -7,7 +7,7 @@ import { AdminOrdersPage } from './pages/admin/AdminOrdersPage.tsx'
 import { DiscountCodesPage } from './pages/admin/DiscountCodesPage.tsx'
 import { ServiceTypesPage } from './pages/admin/ServiceTypesPage.tsx'
 import { StaffPage } from './pages/admin/StaffPage.tsx'
-import { LoginPage, NotFoundPage, RegisterPage } from './pages/AuthPages.tsx'
+import { ConfirmEmailPage, LoginPage, NotFoundPage, RegisterPage } from './pages/AuthPages.tsx'
 import { BookingPage } from './pages/BookingPage.tsx'
 import { MyOrdersPage } from './pages/MyOrdersPage.tsx'
 import { OrderLookupPage } from './pages/OrderLookupPage.tsx'
@@ -35,6 +35,7 @@ function App() {
           />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="confirm-email" element={<ConfirmEmailPage />} />
 
           <Route
             path="admin"

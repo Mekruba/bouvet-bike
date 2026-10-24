@@ -202,6 +202,17 @@ export interface CurrentUser {
   isStaff: boolean
 }
 
+export interface RegistrationResponse {
+  user: CurrentUser
+  /** Stand-in for email delivery: the link the confirmation email would contain. */
+  emailConfirmationLink: string
+}
+
+export interface EmailConfirmationRequestResponse {
+  /** Stand-in for email delivery; null when there's no unconfirmed account with that email. */
+  emailConfirmationLink: string | null
+}
+
 export interface StaffUser {
   id: string
   name: string

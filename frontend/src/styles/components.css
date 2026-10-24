@@ -871,3 +871,8 @@
   border: 0;
 }
 
+
+/* Inputs inside an alert keep the normal text colour. */
+.alert .input {
+  color: var(--color-text);
+}

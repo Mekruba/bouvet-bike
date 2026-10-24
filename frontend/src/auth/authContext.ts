@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { CurrentUser, Role } from '../api/types.ts'
+import type { CurrentUser, RegistrationResponse, Role } from '../api/types.ts'
 
 export interface AuthState {
   /** Null when logged out. */
@@ -8,7 +8,8 @@ export interface AuthState {
   loading: boolean
   hasRole: (role: Role) => boolean
   login: (email: string, password: string, rememberMe: boolean) => Promise<CurrentUser>
-  register: (name: string, email: string, phone: string | null, password: string) => Promise<CurrentUser>
+  /** Creates the account; the customer confirms their email before they can log in. */
+  register: (name: string, email: string, phone: string | null, password: string) => Promise<RegistrationResponse>
   logout: () => Promise<void>
 }
 
