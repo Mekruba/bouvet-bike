@@ -9,12 +9,18 @@ namespace BouvetBike.Users.Application;
 public sealed class AccountService(
     UserManager<ApplicationUser> users,
     SignInManager<ApplicationUser> signIn,
-    ICurrentUser currentUser) : IAccountService
+    ICurrentUser currentUser,
+    IEnumerable<ICustomerAccountEvents> accountEvents) : IAccountService
 {
     public async Task<CurrentUserResponse> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var user = NewUser(request.Name, request.Email, NormalizePhone(request.Phone));
         await CreateAsync(user, request.Password, Roles.Customer);
+        foreach (var handler in accountEvents)
+        {
+            await handler.CustomerRegisteredAsync(user.Id, user.Email!, ct); // e.g. Orders links the guest orders
+        }
+
         await signIn.SignInAsync(user, isPersistent: false);
         return ToCurrentUser(user, [Roles.Customer]);
     }

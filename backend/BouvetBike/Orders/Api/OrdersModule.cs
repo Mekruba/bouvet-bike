@@ -4,6 +4,7 @@ using BouvetBike.Orders.Contracts;
 using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Contracts;
 using BouvetBike.Users;
+using BouvetBike.Users.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
@@ -19,6 +20,7 @@ public static class OrdersModule
         services.AddScoped<ICapacityService, CapacityService>();
         services.AddScoped<ICustomerOrderService, CustomerOrderService>();
         services.AddScoped<IAdminOrderService, AdminOrderService>();
+        services.AddScoped<ICustomerAccountEvents, GuestOrderLinker>();
         services.AddOrderLookupRateLimit();
         return services;
     }
