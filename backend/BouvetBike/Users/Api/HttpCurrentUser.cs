@@ -8,8 +8,10 @@ public sealed class HttpCurrentUser(IHttpContextAccessor httpContextAccessor) : 
 {
     private ClaimsPrincipal? User => httpContextAccessor.HttpContext?.User;
 
+    /// <inheritdoc />
     public Guid? Id =>
         Guid.TryParse(User?.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
+    /// <inheritdoc />
     public bool IsInRole(string role) => User?.IsInRole(role) == true;
 }

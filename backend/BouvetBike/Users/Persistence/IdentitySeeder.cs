@@ -8,6 +8,11 @@ namespace BouvetBike.Users.Persistence;
 /// </summary>
 public static class IdentitySeeder
 {
+    /// <summary>
+    /// Runs on every start: creates missing roles, then the admin if configured and not there yet.
+    /// Without configuration it logs a warning and creates no admin.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Identity rejected the configured admin, e.g. a weak password.</exception>
     public static async Task SeedAsync(IServiceProvider services)
     {
         var roles = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();

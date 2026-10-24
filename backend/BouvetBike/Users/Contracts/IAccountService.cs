@@ -18,13 +18,16 @@ public interface IAccountService
     /// <summary>Signs in with a cookie, if the password is right and the email is confirmed.</summary>
     Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct);
 
+    /// <summary>Clears the auth cookie.</summary>
     Task LogoutAsync(CancellationToken ct);
 
-    /// <summary>Null when not logged in.</summary>
+    /// <summary>The logged-in user with their roles. Null when not logged in.</summary>
     Task<CurrentUserResponse?> GetCurrentAsync(CancellationToken ct);
 
+    /// <summary>Every admin and mechanic, sorted by name.</summary>
     Task<IReadOnlyList<StaffUserResponse>> GetStaffAsync(CancellationToken ct);
 
+    /// <summary>One admin or mechanic.</summary>
     /// <exception cref="Shared.Application.NotFoundException">Not a staff member.</exception>
     Task<StaffUserResponse> GetStaffMemberAsync(Guid id, CancellationToken ct);
 

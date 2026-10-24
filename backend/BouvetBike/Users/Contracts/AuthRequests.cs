@@ -9,6 +9,7 @@ public sealed record RegisterRequest(
     [StringLength(32)] string? Phone,
     [Required, StringLength(100, MinimumLength = PasswordRules.MinLength)] string Password);
 
+/// <summary>Email and password for <c>POST /api/session</c>.</summary>
 /// <param name="RememberMe">Persistent cookie instead of a session cookie.</param>
 public sealed record LoginRequest(
     [Required, EmailAddress] string Email,
@@ -22,6 +23,7 @@ public sealed record CreateStaffRequest(
     [Required, StringLength(100, MinimumLength = PasswordRules.MinLength)] string Password,
     [Required, AllowedValues(Roles.Admin, Roles.Mechanic)] string Role);
 
+/// <summary>Password rules shared by request validation and Identity's options. Identity also requires upper and lower case, a digit and a symbol.</summary>
 public static class PasswordRules
 {
     public const int MinLength = 8;

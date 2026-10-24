@@ -6,6 +6,7 @@ public static class Policies
     /// <summary>Admin or Mechanic.</summary>
     public const string Staff = "Staff";
 
+    /// <summary>Admin only.</summary>
     public const string Admin = "Admin";
 
     /// <summary>A logged-in customer (not staff).</summary>

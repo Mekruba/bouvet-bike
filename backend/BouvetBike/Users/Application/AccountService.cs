@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace BouvetBike.Users.Application;
 
+/// <summary>Accounts on ASP.NET Core Identity. Identity errors become the API's own errors (409, 400 with field errors).</summary>
 public sealed class AccountService(
     UserManager<ApplicationUser> users,
     SignInManager<ApplicationUser> signIn,
@@ -18,6 +19,7 @@ public sealed class AccountService(
 {
     private const string InvalidLink = "This confirmation link is invalid or has expired. Ask for a new one.";
 
+    /// <inheritdoc />
     public async Task<RegistrationResponse> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var user = NewUser(request.Name, request.Email, NormalizePhone(request.Phone));
@@ -25,6 +27,7 @@ public sealed class AccountService(
         return new RegistrationResponse(ToCurrentUser(user, [Roles.Customer]), await ConfirmationLinkAsync(user));
     }
 
+    /// <inheritdoc />
     public async Task ConfirmEmailAsync(Guid userId, string token, CancellationToken ct)
     {
         var user = await users.FindByIdAsync(userId.ToString()) ?? throw new DomainException(InvalidLink);
@@ -53,12 +56,14 @@ public sealed class AccountService(
         }
     }
 
+    /// <inheritdoc />
     public async Task<string?> RequestEmailConfirmationAsync(string email, CancellationToken ct)
     {
         var user = await users.FindByEmailAsync(email);
         return user is null || user.EmailConfirmed ? null : await ConfirmationLinkAsync(user);
     }
 
+    /// <inheritdoc />
     public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct)
     {
         var user = await users.FindByEmailAsync(request.Email);
@@ -87,8 +92,10 @@ public sealed class AccountService(
             : LoginResult.Failed(LoginFailure.InvalidCredentials);
     }
 
+    /// <inheritdoc />
     public Task LogoutAsync(CancellationToken ct) => signIn.SignOutAsync();
 
+    /// <inheritdoc />
     public async Task<CurrentUserResponse?> GetCurrentAsync(CancellationToken ct)
     {
         if (currentUser.Id is not { } id || await users.FindByIdAsync(id.ToString()) is not { } user)
@@ -99,6 +106,7 @@ public sealed class AccountService(
         return ToCurrentUser(user, await users.GetRolesAsync(user));
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<StaffUserResponse>> GetStaffAsync(CancellationToken ct)
     {
         var staff = new Dictionary<Guid, ApplicationUser>();
@@ -119,6 +127,7 @@ public sealed class AccountService(
         return result;
     }
 
+    /// <inheritdoc />
     public async Task<StaffUserResponse> GetStaffMemberAsync(Guid id, CancellationToken ct)
     {
         var user = await users.FindByIdAsync(id.ToString());
@@ -128,6 +137,7 @@ public sealed class AccountService(
             : throw new NotFoundException($"Staff member {id} was not found.");
     }
 
+    /// <inheritdoc />
     public async Task<StaffUserResponse> CreateStaffAsync(CreateStaffRequest request, CancellationToken ct)
     {
         var user = NewUser(request.Name, request.Email, phone: null);
@@ -146,6 +156,7 @@ public sealed class AccountService(
         return $"/confirm-email?userId={user.Id}&token={Base64Url.EncodeToString(Encoding.UTF8.GetBytes(token))}";
     }
 
+    /// <summary>The Identity token from its Base64Url form in the link; null if it isn't valid Base64Url.</summary>
     private static string? DecodeToken(string token)
     {
         try
@@ -158,6 +169,8 @@ public sealed class AccountService(
         }
     }
 
+    /// <summary>A user (not yet saved) whose user name is the normalized email, so login by email works and duplicates are caught.</summary>
+    /// <exception cref="DomainException">Invalid email.</exception>
     private static ApplicationUser NewUser(string name, string email, string? phone)
     {
         var normalizedEmail = Email.Create(email).Value;
@@ -165,6 +178,8 @@ public sealed class AccountService(
     }
 
     /// <summary>Creates the user with a role, turning Identity's errors into our API errors.</summary>
+    /// <exception cref="ConflictException">The email is taken.</exception>
+    /// <exception cref="RequestValidationException">Identity rejected the password (as a <c>password</c> field error) or something else.</exception>
     private async Task CreateAsync(ApplicationUser user, string password, string role)
     {
         var result = await users.CreateAsync(user, password);
@@ -188,6 +203,8 @@ public sealed class AccountService(
         }
     }
 
+    /// <summary>The phone in E.164 format, or null when left empty (it's optional for accounts).</summary>
+    /// <exception cref="RequestValidationException">Not a valid number, as a <c>phone</c> field error.</exception>
     private static string? NormalizePhone(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone))
@@ -205,9 +222,11 @@ public sealed class AccountService(
         }
     }
 
+    /// <summary>The user as <c>/api/users/me</c> shows it, roles sorted.</summary>
     private static CurrentUserResponse ToCurrentUser(ApplicationUser user, IEnumerable<string> roles) =>
         new(user.Id, user.Name, user.Email!, user.PhoneNumber, roles.Order().ToList());
 
+    /// <summary>The user as the staff list shows it, roles sorted.</summary>
     private static StaffUserResponse ToStaff(ApplicationUser user, IEnumerable<string> roles) =>
         new(user.Id, user.Name, user.Email!, roles.Order().ToList());
 }
