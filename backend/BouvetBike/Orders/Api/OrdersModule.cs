@@ -30,7 +30,7 @@ public static class OrdersModule
         api.MapGet("/capacity", GetCapacity).WithTags("Orders");
         api.MapGet("/price-quotes", GetPriceQuote).WithTags("Orders");
 
-        var orders = api.MapGroup("/orders").WithTags("Orders");
+        var orders = api.MapGroup("/orders").WithTags("Orders").WithNoStore();
         orders.MapPost("/", Place);
         // Anyone with a reference, email or phone can see orders, so these lookups are rate-limited.
         orders.MapGet("/", List).RequireRateLimiting(OrderLookupRateLimit.Policy);
@@ -40,7 +40,7 @@ public static class OrdersModule
             .RequireRateLimiting(OrderLookupRateLimit.Policy);
 
         // The staff view of the same orders: separate routes, staff-only.
-        var admin = api.MapGroup("/admin/orders").WithTags("Admin orders").RequireAuthorization(Policies.Staff);
+        var admin = api.MapGroup("/admin/orders").WithTags("Admin orders").RequireAuthorization(Policies.Staff).WithNoStore();
         admin.MapGet("/", Search);
         admin.MapGet("/{id:guid}", GetForStaff);
         admin.MapPatch("/{id:guid}", PatchForStaff).Accepts<JsonPatchDocument<AdminOrderPatch>>(JsonPatch.MediaType);

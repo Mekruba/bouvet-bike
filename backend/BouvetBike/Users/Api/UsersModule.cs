@@ -1,3 +1,4 @@
+using BouvetBike.Shared.Api;
 using BouvetBike.Shared.Contracts;
 using BouvetBike.Shared.Persistence;
 using BouvetBike.Users.Application;
@@ -63,17 +64,17 @@ public static class UsersModule
 
     public static RouteGroupBuilder MapUsersEndpoints(this RouteGroupBuilder api)
     {
-        var users = api.MapGroup("/users").WithTags("Users");
+        var users = api.MapGroup("/users").WithTags("Users").WithNoStore();
         users.MapPost("/", Register);
         users.MapGet("/me", GetMe).WithName(nameof(GetMe)).RequireAuthorization();
-        users.MapPost("/{id:guid}/email-confirmation", ConfirmEmail);
-        api.MapPost("/email-confirmation-requests", RequestEmailConfirmation).WithTags("Users");
+        users.MapPut("/{id:guid}/email-confirmation", ConfirmEmail);
+        api.MapPost("/email-confirmation-requests", RequestEmailConfirmation).WithTags("Users").WithNoStore();
 
-        var session = api.MapGroup("/session").WithTags("Users");
+        var session = api.MapGroup("/session").WithTags("Users").WithNoStore();
         session.MapPost("/", Login);
         session.MapDelete("/", Logout);
 
-        var staff = api.MapGroup("/admin/staff").WithTags("Users").RequireAuthorization(Policies.Admin);
+        var staff = api.MapGroup("/admin/staff").WithTags("Users").RequireAuthorization(Policies.Admin).WithNoStore();
         staff.MapGet("/", GetStaff);
         staff.MapGet("/{id:guid}", GetStaffMember).WithName(nameof(GetStaffMember));
         staff.MapPost("/", CreateStaff);
