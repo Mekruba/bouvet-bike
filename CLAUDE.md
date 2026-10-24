@@ -24,6 +24,7 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 
 ## Conventions and gotchas
 
+- Every type and function in `backend/BouvetBike` has a `///` comment: what it does, and why when that isn't obvious. Endpoint handlers name their route and status codes. Interface methods carry the description and `<exception>` tags; implementations use `/// <inheritdoc />`. Use the exception the code really throws (`StateConflictException` for 409, not its base `DomainException`). Check `cref`s with `dotnet build -p:GenerateDocumentationFile=true -p:NoWarn='CS1591%3BCS1573'`.
 - Validation uses .NET 10 `AddValidation()` + DataAnnotations on DTOs. **Request types must be declared in their own files under a namespace.** Types declared in `Program.cs` are silently not validated.
 - Query records bound with `[AsParameters]` put validation attributes on the property: `[property: Range(1, 100)] int PageSize`. On the constructor parameter they break OpenAPI generation (`InvalidCastException`, `/openapi/v1.json` returns 500); validation works either way. `OpenApiTests` catches it.
 - Errors are RFC 7807 ProblemDetails. Business rule violations: throw `DomainException` in the domain; `ApiExceptionHandler` turns it into a 400 with `detail` (plus any `Details` as extra fields); `NotFoundException` becomes a 404. Input validation failures: 400 with `errors`. The frontend `ApiError` reads both.
