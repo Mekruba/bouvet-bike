@@ -79,6 +79,8 @@ export interface OrderPrice {
   discountAmount: Money
   total: Money
   isOverridden: boolean
+  /** Why staff set the final price; shown to the customer. */
+  overrideReason: string | null
 }
 
 export interface Contact {

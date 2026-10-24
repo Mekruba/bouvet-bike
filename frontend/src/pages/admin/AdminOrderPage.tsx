@@ -372,7 +372,7 @@ function PriceCard({ order, onChange, reload }: SectionProps) {
         <PriceSummary price={order.price} serviceLabel={order.serviceName} />
         {order.priceOverride && (
           <p className="small muted">
-            Set by {order.priceOverride.overriddenBy ?? 'staff'} on {formatDateTime(order.priceOverride.overriddenAt)}: “{order.priceOverride.reason}”
+            Final price set by {order.priceOverride.overriddenBy ?? 'staff'} on {formatDateTime(order.priceOverride.overriddenAt)}.
           </p>
         )}
 
@@ -431,7 +431,7 @@ function PriceOverrideForm({ order, reload }: { order: AdminOrder; reload: () =>
       <span className="field__label">Final price (admin)</span>
       <div className="grid-2">
         <TextField label="Amount (NOK)" type="number" min={0} step="1" {...form.bind('amount')} />
-        <TextField label="Reason" {...form.bind('reason')} />
+        <TextField label="Reason" hint="Shown to the customer." {...form.bind('reason')} />
       </div>
       {form.formError && <Alert tone="danger">{form.formError}</Alert>}
       <div className="form-actions">

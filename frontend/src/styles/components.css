@@ -898,3 +898,13 @@
   font-weight: var(--weight-bold);
   line-height: 16px;
 }
+
+/* Why a final price was set by staff, under the total. */
+.price-summary__note {
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-info-soft);
+  color: var(--color-info);
+  font-size: var(--text-sm);
+}

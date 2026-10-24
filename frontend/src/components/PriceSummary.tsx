@@ -35,6 +35,11 @@ export function PriceSummary({ price, serviceLabel = 'Service', totalLabel = 'To
         <span>{price.isOverridden ? 'Final price' : totalLabel}</span>
         <span>{formatMoney(price.total)}</span>
       </div>
+      {price.isOverridden && price.overrideReason && (
+        <p className="price-summary__note">
+          <strong>Why the price changed:</strong> {price.overrideReason}
+        </p>
+      )}
     </div>
   )
 }
