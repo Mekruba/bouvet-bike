@@ -6,12 +6,14 @@ namespace BouvetBike.Orders.Contracts;
 public sealed record ContactResponse(string Name, string Email, string Phone);
 
 /// <summary>Price breakdown. Also used for quotes before ordering (never overridden then).</summary>
+/// <param name="OverrideReason">Why staff set the final price. Shown to the customer, so they can see why it changed.</param>
 public sealed record OrderPriceResponse(
     MoneyResponse ServicePrice,
     string? DiscountCode,
     MoneyResponse DiscountAmount,
     MoneyResponse Total,
-    bool IsOverridden);
+    bool IsOverridden,
+    string? OverrideReason = null);
 
 /// <summary>What a customer sees: no internal notes, no staff details. Also the confirmation after ordering.</summary>
 public sealed record CustomerOrderResponse(

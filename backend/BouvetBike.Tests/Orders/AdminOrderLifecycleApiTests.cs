@@ -165,6 +165,29 @@ public class AdminOrderLifecycleApiTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task PriceOverride_Reason_IsShownToTheCustomer()
+    {
+        var (id, reference) = await PlaceOrderWithReference();
+
+        await _admin.PutJsonAsync(PriceUrl(id), new OverridePriceRequest(650, "Chain was fine, only cleaned")).AssertStatus(HttpStatusCode.Created);
+
+        var customerView = await _anonymous.GetAsync($"{OrdersUrl}/{reference}").ReadAs<CustomerOrderResponse>();
+        Assert.Equal((650m, true, "Chain was fine, only cleaned"), (customerView.Price.Total.Amount, customerView.Price.IsOverridden, customerView.Price.OverrideReason));
+    }
+
+    [Fact]
+    public async Task PriceOverride_Cleared_RemovesTheReasonForTheCustomer()
+    {
+        var (id, reference) = await PlaceOrderWithReference();
+        await _admin.PutJsonAsync(PriceUrl(id), new OverridePriceRequest(500, "Goodwill")).AssertStatus(HttpStatusCode.Created);
+
+        await _admin.DeleteAsync(PriceUrl(id)).AssertStatus(HttpStatusCode.NoContent);
+
+        var customerView = await _anonymous.GetAsync($"{OrdersUrl}/{reference}").ReadAs<CustomerOrderResponse>();
+        Assert.Equal((false, null as string), (customerView.Price.IsOverridden, customerView.Price.OverrideReason));
+    }
+
+    [Fact]
     public async Task PriceOverride_AllowedOnCompletedOrder()
     {
         var id = await PlaceOrder();
