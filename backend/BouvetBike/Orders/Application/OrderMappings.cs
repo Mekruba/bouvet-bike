@@ -22,7 +22,8 @@ internal static class OrderMappings
         order.Discount?.Code,
         MoneyResponse.From(order.DiscountAmount),
         MoneyResponse.From(order.Total),
-        IsOverridden: order.PriceOverride is not null);
+        IsOverridden: order.PriceOverride is not null,
+        OverrideReason: order.PriceOverride?.Reason);
 
     /// <summary>A service that can be put on an order. Unknown or inactive is a broken rule, not a missing resource.</summary>
     /// <exception cref="DomainException">Unknown or inactive service type.</exception>
