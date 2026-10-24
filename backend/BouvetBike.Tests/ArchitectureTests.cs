@@ -75,6 +75,7 @@ public class ArchitectureTests
     [Theory]
     [InlineData("Catalog")]
     [InlineData("Discounts")]
+    [InlineData("Users")] // Orders depends on Users, so Users reaches Orders only through its own contracts (ICustomerAccountEvents)
     public void UpstreamModules_DoNotDependOnOrders(string module) =>
         AssertNoDependency(AllTypes.ResideInNamespace($"BouvetBike.{module}"), "BouvetBike.Orders");
 

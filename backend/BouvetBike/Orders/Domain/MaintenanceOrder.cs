@@ -112,6 +112,9 @@ public sealed class MaintenanceOrder : AggregateRoot
         }
     }
 
+    /// <summary>Links a guest order to a customer account (e.g. when the guest registers with the order's email).</summary>
+    public void LinkToCustomer(Guid customerId, TimeProvider clock) => throw new NotImplementedException("Not yet test-driven.");
+
     public void ChangeStatus(OrderStatus newStatus, Guid? changedById, TimeProvider clock, string? reason = null)
     {
         if (!OrderStatusTransitions.CanTransition(Status, newStatus))

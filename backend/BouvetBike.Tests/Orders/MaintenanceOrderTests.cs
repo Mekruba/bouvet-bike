@@ -141,6 +141,27 @@ public class MaintenanceOrderTests
     }
 
     [Fact]
+    public void LinkToCustomer_LinksAGuestOrder_AndIsIdempotent()
+    {
+        var order = Order(_clock);
+        var customerId = Guid.NewGuid();
+
+        order.LinkToCustomer(customerId, _clock);
+        order.LinkToCustomer(customerId, _clock);
+
+        Assert.Equal(customerId, order.CustomerId);
+    }
+
+    [Fact]
+    public void LinkToCustomer_WhenAlreadyOnAnotherAccount_IsAStateConflict()
+    {
+        var order = Order(_clock);
+        order.LinkToCustomer(Guid.NewGuid(), _clock);
+
+        Assert.Throws<StateConflictException>(() => order.LinkToCustomer(Guid.NewGuid(), _clock));
+    }
+
+    [Fact]
     public void UpdateDetails_AllowsUnchangedPastDueDate()
     {
         var clock = Clock();
