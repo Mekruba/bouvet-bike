@@ -5,5 +5,5 @@ namespace BouvetBike.Orders.Contracts;
 
 /// <summary>Estimated price before ordering, bound from the query string. Checks the discount code without using it up.</summary>
 public sealed record PriceQuoteQuery(
-    [Required] Guid? ServiceTypeId,
-    [StringLength(DiscountCode.CodeMaxLength)] string? DiscountCode);
+    [property: Required] Guid? ServiceTypeId,
+    [property: StringLength(DiscountCode.CodeMaxLength)] string? DiscountCode);
