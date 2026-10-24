@@ -36,6 +36,7 @@ Optional change request: estimated price shown before submit; admin can override
 
 - **Customers don't need an account.** The spec has customers find orders "using a simple reference, email, or phone number" and lists contact details as order data, so guest ordering is the default flow.
 - **Customer accounts are optional.** A logged-in customer gets prefilled contact details and a list of their orders. The order still stores its own contact details either way.
+- **Registering links your guest orders.** Orders booked as a guest with the same email (ignoring case) are linked to the new account and show up under "My orders". Orders already on another account stay there; phone numbers are not matched. Without email verification, registering with someone else's email would claim their guest orders. That is the same exposure as finding orders by email, accepted above; a real product would verify the email first.
 - **Staff must log in.** Admin and Mechanic are roles on a real user account (ASP.NET Core Identity). This is how customer and admin functionality are separated.
 
 ### Order lookup

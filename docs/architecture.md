@@ -39,6 +39,7 @@ Folders are added as features are built (`Api/` and most of `Application/` come 
 - **A module may use another module's `Contracts` and `Domain`, never its `Application`, `Persistence` or `Api`.** For example, Orders calls `Catalog.Contracts.ICatalogService`; it never sees how the catalog is implemented. `Shared` is the host and is exempt: `AppDbContext` and seeding wire the modules together.
 - `Shared.Domain` depends on no module.
 - Dependencies between modules point one way: `Orders` may use `Catalog` and `Discounts`, never the reverse. An order is placed *with* a `ServiceType` and *with* an `AppliedDiscount`; the catalog and discounts know nothing about orders.
+- **When Users needs to tell Orders something** (a customer registered, so link their guest orders), it calls an interface in its own contracts, `ICustomerAccountEvents`, which Orders implements. Users never references Orders (an architecture test checks this), so the one-way dependency holds.
 - There is one `AppDbContext` (in `Shared/Persistence`). It picks up every module's mapping, so modules share a transaction without extra plumbing.
 
 ## Choices so far
