@@ -86,6 +86,38 @@ The app runs at http://localhost:8080 (`PORT` in `.env` changes it). nginx serve
 
 Production is the default environment, so there's no demo data and no Scalar. Set `ASPNETCORE_ENVIRONMENT=Development` in `.env` to get the demo discount codes.
 
+## Environment variables
+
+The backend reads configuration from `appsettings.json`, user secrets (Development) and environment variables, with environment variables winning. A `:` in a setting becomes `__` in a variable name.
+
+**Backend**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `ASPNETCORE_ENVIRONMENT` | `Production` (`Development` with `just dev`, via `launchSettings.json`) | Development adds the demo discount codes, `/openapi/v1.json` and Scalar |
+| `ASPNETCORE_URLS` | `http://localhost:5080` in dev; port 8080 in Docker (`ASPNETCORE_HTTP_PORTS`) | Where the API listens |
+| `ConnectionStrings__Default` | `Data Source=bouvetbike.db` (in `backend/BouvetBike/`); `/data/bouvetbike.db` in Docker | SQLite database file |
+| `Admin__Email`, `Admin__Password` | none: set them with `just admin` (user secrets) or in `.env` for Docker | The first admin, created on startup if missing. Without them, no admin is created and a warning is logged |
+| `Capacity__MaxOrdersPerDay` | `5` | Starting default for every weekday, used only when the capacity schedule is first created. After that, admins change it in the staff area |
+| `Capacity__SearchDays` | `60` | How far ahead to look for the next open date when a date is full |
+| `RateLimiting__OrderLookups__PermitsPerMinute` | `30` | Order lookups (by reference, email or phone) allowed per IP address per minute |
+| `DataProtection__KeysPath` | unset (keys in the user profile); `/data/keys` in Docker | Where the keys that sign login cookies and confirmation links are kept. Set it when the app runs where the user profile doesn't survive, e.g. a container |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | unset; `true` in Docker | Trust `X-Forwarded-For` from a reverse proxy, so the rate limit sees client IPs. Only safe when nothing but the proxy can reach the backend |
+
+**Docker Compose** (`.env`, see `.env.example`)
+
+| Variable | Default | What it does |
+|---|---|---|
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | required | Passed to the backend as `Admin__Email`, `Admin__Password` |
+| `ASPNETCORE_ENVIRONMENT` | `Production` | Passed to the backend |
+| `PORT` | `8080` | Port on the host where the app is published |
+
+**Frontend dev server**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `API_PROXY_TARGET` | `http://localhost:5080` | Backend that Vite proxies `/api` to, e.g. to run a second dev server against another backend |
+
 ## Using the app
 
 **Customers** (no account needed):

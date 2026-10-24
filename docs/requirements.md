@@ -89,7 +89,7 @@ Business logic (at least one):
 ### Status lifecycle
 
 - **Every status change is recorded** (from, to, who, when, optional reason), so the lifecycle has a history and not just a current value.
-- Valid transitions are enforced by the order itself; an invalid transition is a business rule violation (400).
+- Valid transitions are enforced by the order itself; an invalid transition is refused with 409, because the order's current status is what forbids it.
 
 ## Priorities
 

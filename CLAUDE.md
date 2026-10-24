@@ -44,6 +44,8 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 ## API conventions (REST + RFC 6902)
 
 - Plural kebab-case resources, no verbs in URLs. `POST` → 201 + `Location`; `PATCH` → 200 + resource; `DELETE` → 204; unsupported method → 405.
+- An idempotent "set this singleton" is `PUT` (201 created / 200 replaced, or 204), not `POST`: e.g. `PUT …/price-override`, `PUT …/email-confirmation`.
+- Route groups that return personal data get `.WithNoStore()` (`Cache-Control: no-store`). New endpoints with orders, contact details or accounts belong in such a group; `CacheControlApiTests` covers them.
 - Updates are `PATCH` with JSON Patch (`application/json-patch+json`, `Microsoft.AspNetCore.JsonPatch.SystemTextJson`). Apply the patch to a `…Patch` model in `Contracts/`, validate it, then call the domain. Never patch an entity directly. Endpoint: `.Accepts<JsonPatchDocument<TPatch>>(JsonPatch.MediaType)` (gives 415) and `JsonPatch.FindMalformedOperation` (400). Service: build the model from the entity, `patch.ApplyAndValidate(model)` (409/422), then call domain methods, turning a `DomainException` into `UnprocessableException`.
 - PATCH errors per RFC 5789: 400 malformed, 415 wrong media type, 409 failed `test` op (`ConflictException`), 422 bad path or invalid result (`UnprocessableException` with field errors). The full table is in `docs/architecture.md`.
 

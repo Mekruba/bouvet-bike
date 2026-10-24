@@ -195,6 +195,7 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 - **Updates are `PATCH` with a JSON Patch document (RFC 6902)**, `Content-Type: application/json-patch+json`. The patch is applied to a *patch model* (e.g. `ServiceTypePatch`) whose camelCase properties are the patch paths. The model is then validated and passed to the domain, so a patch can never bypass a business rule. Patches are atomic: if any operation fails, nothing is saved.
 - **`PATCH` status codes follow RFC 5789 §2.2:** 400 malformed patch document · 415 wrong content type · **409 a `test` operation failed** (use `test` for optimistic concurrency) or the result conflicts with another resource · **422 unknown or read-only path, or the patched resource would be invalid**, with field errors.
 - 401 when not logged in, 403 when logged in with the wrong role.
+- **Responses with personal data are sent with `Cache-Control: no-store`** (RFC 9111): `/api/orders`, `/api/admin/orders`, `/api/users`, `/api/session`, `/api/admin/staff` and `/api/email-confirmation-requests`, through `WithNoStore()` on the route group. `GET /api/orders` answers differently depending on the `Order-Contact` header or the login cookie, so a cached copy could reach the wrong person. Catalog, capacity and price quotes are public and left cacheable.
 
 ### Endpoints
 
@@ -240,7 +241,7 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | `GET /api/admin/orders/{id}` | staff | `GetAsync` |
 | `PATCH /api/admin/orders/{id}` | staff | `PatchAsync`: details, service, due date, `/internalNotes`, `/discountCode` |
 | `DELETE /api/admin/orders/{id}` | Admin | `DeleteAsync` → 204 |
-| `GET` · `POST /api/admin/orders/{id}/status-changes` | staff | `GetStatusChangesAsync`, `AddStatusChangeAsync` → 201 + `Location`; invalid transition → 400 |
+| `GET` · `POST /api/admin/orders/{id}/status-changes` | staff | `GetStatusChangesAsync`, `AddStatusChangeAsync` → 201 + `Location`; invalid transition for the current status → 409 |
 | `GET /api/admin/orders/{id}/status-changes/{changeId}` | staff | `GetStatusChangeAsync` |
 | `GET /api/admin/orders/{id}/price-override` | staff | `GetPriceOverrideAsync`; 404 when none is set |
 | `PUT` · `DELETE /api/admin/orders/{id}/price-override` | Admin | `SetPriceOverrideAsync` → **201 when created, 200 when replaced** (RFC 9110); `ClearPriceOverrideAsync` → 204, also when none is set (idempotent) |
@@ -261,7 +262,7 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | Route | Access | Service method |
 |---|---|---|
 | `POST /api/users` | anyone | `IAccountService.RegisterAsync`: a Customer account with an unconfirmed email → 201, `Location: /api/users/me`, with `emailConfirmationLink` (stand-in for email); not signed in; taken email → 409 |
-| `POST /api/users/{id}/email-confirmation` | anyone with the token | `ConfirmEmailAsync` → 204 (idempotent); bad token → 400. Links the customer's guest orders |
+| `PUT /api/users/{id}/email-confirmation` | anyone with the token | `ConfirmEmailAsync` → 204 (idempotent, so `PUT` to a singleton rather than `POST`); bad token → 400. Links the customer's guest orders |
 | `POST /api/email-confirmation-requests` | anyone | `RequestEmailConfirmationAsync` → 202, with a new link only for an unconfirmed account |
 | `GET /api/users/me` | logged in | `GetCurrentAsync` |
 | `POST /api/session` | anyone | `LoginAsync` → 200 with the user and a cookie; wrong email or password → 401 (same answer for both); right password but unconfirmed email → 403 |
