@@ -8,13 +8,13 @@ import { EmptyState } from '../components/Feedback.tsx'
 import { OrderSummaryTable } from '../components/OrderSummaryTable.tsx'
 import { PageHeader } from '../components/PageHeader.tsx'
 
-/** A logged-in customer's orders. Orders placed as a guest are found under "Find my order". */
+/** A logged-in customer's orders, including guest bookings with the same email (linked when they registered). */
 export function MyOrdersPage() {
   const orders = useApi(() => ordersApi.mine(), [])
 
   return (
     <>
-      <PageHeader title="My orders" subtitle="Orders placed while logged in." actions={<ButtonLink to="/">Book a service</ButtonLink>} />
+      <PageHeader title="My orders" subtitle="Your bookings, including guest bookings made with your email before you registered." actions={<ButtonLink to="/">Book a service</ButtonLink>} />
       {orders.error ? (
         <Alert tone="danger">{errorMessage(orders.error)}</Alert>
       ) : (

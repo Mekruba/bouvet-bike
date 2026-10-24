@@ -60,7 +60,7 @@ export function RegisterPage() {
 
   return (
     <div className="narrow">
-      <PageHeader title="Create an account" subtitle="See all your bookings in one place. Booking without an account works too." />
+      <PageHeader title="Create an account" subtitle="See all your bookings in one place. Bookings you made as a guest with the same email are added automatically." />
       <Card footer={<p className="small">Already have an account? <Link to="/login">Log in</Link></p>}>
         <form className="stack" onSubmit={handleSubmit} noValidate>
           <TextField label="Name" autoComplete="name" required {...form.bind('name')} />
