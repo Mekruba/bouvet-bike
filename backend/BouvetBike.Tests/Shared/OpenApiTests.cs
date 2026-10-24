@@ -20,4 +20,16 @@ public class OpenApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Contains("/api/price-quotes", document.Paths.Keys);
         Assert.Contains(document.Paths.Keys, path => path.TrimEnd('/') == "/api/admin/orders");
     }
+
+    [Fact]
+    public async Task Document_HasTheXmlComments_ForEndpointsAndSchemas()
+    {
+        var provider = factory.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1");
+
+        var document = await provider.GetOpenApiDocumentAsync();
+
+        var getServiceType = document.Paths["/api/service-types/{id}"].Operations![HttpMethod.Get];
+        Assert.Contains("404 if unknown", getServiceType.Summary + getServiceType.Description);
+        Assert.Equal("A service type in the catalog.", document.Components!.Schemas!["ServiceTypeResponse"].Description);
+    }
 }
