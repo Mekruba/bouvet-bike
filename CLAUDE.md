@@ -25,6 +25,7 @@ Interview assignment: bike repair shop with a customer portal and an admin page.
 ## Conventions and gotchas
 
 - Validation uses .NET 10 `AddValidation()` + DataAnnotations on DTOs. **Request types must be declared in their own files under a namespace.** Types declared in `Program.cs` are silently not validated.
+- Query records bound with `[AsParameters]` put validation attributes on the property: `[property: Range(1, 100)] int PageSize`. On the constructor parameter they break OpenAPI generation (`InvalidCastException`, `/openapi/v1.json` returns 500); validation works either way. `OpenApiTests` catches it.
 - Errors are RFC 7807 ProblemDetails. Business rule violations: throw `DomainException` in the domain; `ApiExceptionHandler` turns it into a 400 with `detail` (plus any `Details` as extra fields); `NotFoundException` becomes a 404. Input validation failures: 400 with `errors`. The frontend `ApiError` reads both.
 - Frontend calls relative `/api/...` paths; Vite proxies to the backend. Don't hardcode backend URLs.
 - Keep docs in `docs/` current when making architectural decisions; log notable AI interactions in `docs/ai-workflow.md`.
