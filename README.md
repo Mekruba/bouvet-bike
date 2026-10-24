@@ -63,7 +63,7 @@ just reset-db                                          # only if the database al
 
 Then log in with `POST /api/session`. The admin can create mechanics and other admins with `POST /api/admin/staff`.
 
-The SQLite database (`backend/BouvetBike/bouvetbike.db`) is created on first start. After changing the data model, run `just reset-db`.
+The SQLite database (`backend/BouvetBike/bouvetbike.db`) is created on first start. Daily capacity is set in the staff area (Capacity); `Capacity:MaxOrdersPerDay` in `appsettings.json` only sets the starting default for every weekday. After changing the data model, run `just reset-db`.
 
 ## Using the app
 
@@ -75,6 +75,7 @@ The SQLite database (`backend/BouvetBike/bouvetbike.db`) is created on first sta
 **Staff** (`/admin`, log in first, see [Admin login](#admin-login)):
 - **Orders:** today's counts and the next 14 days' capacity (click a day to filter), search, filters, sorting and paging. An order's page has details, status actions with history, internal notes, discount code, and (Admin) the final price and delete.
 - **Services:** the catalog. Admins add, edit and retire services.
+- **Capacity:** weekday defaults (e.g. Saturday 3, Sunday 0 = closed) and a 4-week calendar where admins give single dates more or less capacity, or close them; adjusted dates show against their default, e.g. "6/5".
 - **Discount codes** and **Staff:** Admin only.
 
 ## Test
