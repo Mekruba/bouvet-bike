@@ -83,7 +83,7 @@ export const accountApi = {
   /** Creates the account with an unconfirmed email; doesn't sign in. */
   register: (name: string, email: string, phone: string | null, password: string) =>
     api<RegistrationResponse>('/users', { body: { name, email, phone, password } }),
-  confirmEmail: (userId: string, token: string) => api<void>(`/users/${userId}/email-confirmation`, { body: { token } }),
+  confirmEmail: (userId: string, token: string) => api<void>(`/users/${userId}/email-confirmation`, { method: 'PUT', body: { token } }),
   requestEmailConfirmation: (email: string) =>
     api<EmailConfirmationRequestResponse>('/email-confirmation-requests', { body: { email } }),
   login: (email: string, password: string, rememberMe: boolean) =>
