@@ -10,10 +10,11 @@ setup:
 # Run backend (watch) and frontend dev server together; Ctrl-C stops both
 dev:
     #!/usr/bin/env bash
-    trap 'kill 0' EXIT
-    (cd backend && dotnet watch --project BouvetBike --no-hot-reload) &
+    # dotnet watch must run in the foreground: it ignores SIGTERM and stops only on Ctrl-C, which bash hides
+    # from background jobs. In the background it outlived this recipe and kept port 5080 busy.
+    trap 'trap "" TERM; kill 0' EXIT
     (cd frontend && npm run dev) &
-    wait
+    cd backend && dotnet watch --project BouvetBike --no-hot-reload
 
 backend:
     cd backend && dotnet watch --project BouvetBike --no-hot-reload
