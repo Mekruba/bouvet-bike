@@ -5,6 +5,7 @@ namespace BouvetBike.Discounts.Persistence;
 /// <summary>Demo discount codes, so the discount and price quote features can be shown. Development only.</summary>
 public static class DiscountSeed
 {
+    /// <summary><c>WELCOME10</c> (10 %) and <c>SPRING100</c> (100 NOK off, 50 uses). New instances on every call.</summary>
     public static IEnumerable<DiscountCode> DemoCodes() =>
     [
         DiscountCode.Create("WELCOME10", DiscountType.Percentage, 10),

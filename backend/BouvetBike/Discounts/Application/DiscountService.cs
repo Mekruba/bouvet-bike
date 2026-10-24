@@ -8,20 +8,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BouvetBike.Discounts.Application;
 
+/// <summary>Discount codes, stored in <see cref="AppDbContext.DiscountCodes"/>. Validity is checked against the injected clock.</summary>
 public sealed class DiscountService(AppDbContext db, TimeProvider clock) : IDiscountService
 {
+    /// <inheritdoc />
     public async Task<AppliedDiscount> PreviewAsync(string code, CancellationToken ct) =>
         (await FindAsync(code, ct)).Preview(clock);
 
+    /// <inheritdoc />
     public async Task<AppliedDiscount> RedeemAsync(string code, CancellationToken ct) =>
         (await FindAsync(code, ct)).Redeem(clock); // tracked: saved with the caller's SaveChanges
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<DiscountCodeResponse>> GetAllAsync(CancellationToken ct) =>
         (await db.DiscountCodes.OrderBy(d => d.Code).ToListAsync(ct)).Select(ToResponse).ToList();
 
+    /// <inheritdoc />
     public async Task<DiscountCodeResponse> GetByIdAsync(Guid id, CancellationToken ct) =>
         ToResponse(await LoadAsync(id, ct));
 
+    /// <inheritdoc />
     public async Task<DiscountCodeResponse> CreateAsync(CreateDiscountCodeRequest request, CancellationToken ct)
     {
         var normalized = DiscountCode.Normalize(request.Code);
@@ -37,6 +43,7 @@ public sealed class DiscountService(AppDbContext db, TimeProvider clock) : IDisc
         return ToResponse(code);
     }
 
+    /// <inheritdoc />
     public async Task<DiscountCodeResponse> PatchAsync(Guid id, JsonPatchDocument<DiscountCodePatch> patch, CancellationToken ct)
     {
         var code = await LoadAsync(id, ct);
@@ -74,12 +81,17 @@ public sealed class DiscountService(AppDbContext db, TimeProvider clock) : IDisc
         return ToResponse(code);
     }
 
+    /// <summary>A code by ID, for the admin endpoints.</summary>
+    /// <exception cref="NotFoundException">Unknown ID.</exception>
     private async Task<DiscountCode> LoadAsync(Guid id, CancellationToken ct) =>
         await db.DiscountCodes.FindAsync([id], ct) ?? throw new NotFoundException($"Discount code {id} was not found.");
 
+    /// <summary>The code as the admin API shows it.</summary>
     private static DiscountCodeResponse ToResponse(DiscountCode code) => new(
         code.Id, code.Code, code.Type, code.Value, code.ValidFrom, code.ValidTo, code.MaxUses, code.TimesUsed, code.IsActive);
 
+    /// <summary>A code as a customer typed it, in any case.</summary>
+    /// <exception cref="DomainException">No such code: a business rule failure (400), not a missing resource, because the customer sent it in an order or quote.</exception>
     private async Task<DiscountCode> FindAsync(string code, CancellationToken ct)
     {
         var normalized = DiscountCode.Normalize(code);

@@ -3,6 +3,7 @@ using BouvetBike.Discounts.Domain;
 
 namespace BouvetBike.Discounts.Contracts;
 
+/// <summary>A new discount code (Admin). Leave out the dates for no start or end date.</summary>
 /// <param name="Code">Letters, digits and dashes; stored upper case and matched case-insensitively.</param>
 /// <param name="Value">Percent (0–100] for <see cref="DiscountType.Percentage"/>, NOK for <see cref="DiscountType.FixedAmount"/>.</param>
 /// <param name="MaxUses">Null for unlimited.</param>

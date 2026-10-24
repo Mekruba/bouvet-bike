@@ -20,9 +20,11 @@ public interface IDiscountService
     /// <summary>All codes, active or not, sorted by code.</summary>
     Task<IReadOnlyList<DiscountCodeResponse>> GetAllAsync(CancellationToken ct);
 
+    /// <summary>One code, with its terms and how often it has been used.</summary>
     /// <exception cref="Shared.Application.NotFoundException">Unknown code.</exception>
     Task<DiscountCodeResponse> GetByIdAsync(Guid id, CancellationToken ct);
 
+    /// <summary>Adds an active code, stored in upper case.</summary>
     /// <exception cref="Shared.Application.ConflictException">The code exists (case-insensitive).</exception>
     /// <exception cref="Shared.Domain.DomainException">Invalid terms, e.g. a percentage over 100.</exception>
     Task<DiscountCodeResponse> CreateAsync(CreateDiscountCodeRequest request, CancellationToken ct);

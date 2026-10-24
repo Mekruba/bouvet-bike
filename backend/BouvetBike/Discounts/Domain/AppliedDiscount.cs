@@ -16,6 +16,7 @@ public sealed record AppliedDiscount
 
     private AppliedDiscount() { } // EF Core
 
+    /// <summary>Copies the code's current terms. Created only by <see cref="DiscountCode.Preview"/>, after its checks pass.</summary>
     internal AppliedDiscount(DiscountCode code)
     {
         DiscountCodeId = code.Id;
@@ -24,7 +25,7 @@ public sealed record AppliedDiscount
         Value = code.Value;
     }
 
-    /// <summary>Never more than the subtotal, so the total can't go negative.</summary>
+    /// <summary>The discount on <paramref name="subtotal"/>: a percentage of it, or the fixed amount. Never more than the subtotal, so the total can't go negative.</summary>
     public Money CalculateFor(Money subtotal) => Type switch
     {
         DiscountType.Percentage => new Money(subtotal.Amount * Value / 100m, subtotal.Currency),

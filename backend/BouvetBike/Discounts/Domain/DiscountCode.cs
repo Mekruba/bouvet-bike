@@ -3,6 +3,7 @@ using BouvetBike.Shared.Domain;
 
 namespace BouvetBike.Discounts.Domain;
 
+/// <summary>A code customers enter for a discount, with terms: percentage or fixed amount, validity dates, and a use limit.</summary>
 public sealed partial class DiscountCode : AggregateRoot
 {
     public const int CodeMaxLength = 32;
@@ -20,6 +21,8 @@ public sealed partial class DiscountCode : AggregateRoot
 
     private DiscountCode() { } // EF Core
 
+    /// <summary>A new, active code.</summary>
+    /// <exception cref="DomainException">The code has characters other than letters, digits and dashes, or the terms are invalid (see <see cref="UpdateTerms"/>).</exception>
     public static DiscountCode Create(
         string code, DiscountType type, decimal value, DateOnly? validFrom = null, DateOnly? validTo = null, int? maxUses = null)
     {
@@ -34,8 +37,15 @@ public sealed partial class DiscountCode : AggregateRoot
         return discount;
     }
 
+    /// <summary>Trimmed and upper-cased, the form codes are stored and compared in.</summary>
+    /// <exception cref="DomainException">Missing or longer than <see cref="CodeMaxLength"/>.</exception>
     public static string Normalize(string? code) => Guard.Required(code, "Discount code", CodeMaxLength).ToUpperInvariant();
 
+    /// <summary>Replaces the terms. Orders that already used the code keep the terms they got (<see cref="AppliedDiscount"/>).</summary>
+    /// <exception cref="DomainException">
+    /// A percentage outside (0, 100], a fixed amount that isn't positive, a start after the end,
+    /// or a use limit below 1 or below the uses so far.
+    /// </exception>
     public void UpdateTerms(DiscountType type, decimal value, DateOnly? validFrom, DateOnly? validTo, int? maxUses)
     {
         var validValue = type switch
@@ -74,6 +84,7 @@ public sealed partial class DiscountCode : AggregateRoot
     }
 
     /// <summary>Checks the code can be used today, without counting a use. For price quotes.</summary>
+    /// <exception cref="DomainException">Inactive, outside its validity dates, or used up.</exception>
     public AppliedDiscount Preview(TimeProvider clock)
     {
         var today = DateOnly.FromDateTime(clock.GetLocalNow().Date);
@@ -91,6 +102,7 @@ public sealed partial class DiscountCode : AggregateRoot
     }
 
     /// <summary>Checks the code can be used today, counts the use, and returns the terms to store on the order.</summary>
+    /// <exception cref="DomainException">See <see cref="Preview"/>.</exception>
     public AppliedDiscount Redeem(TimeProvider clock)
     {
         var applied = Preview(clock);
@@ -98,10 +110,13 @@ public sealed partial class DiscountCode : AggregateRoot
         return applied;
     }
 
+    /// <summary>Retires the code: it can't be used any more, but orders that used it keep their discount.</summary>
     public void Deactivate() => IsActive = false;
 
+    /// <summary>Makes a retired code usable again (validity dates and use limit still apply).</summary>
     public void Activate() => IsActive = true;
 
+    /// <summary>Letters, digits and dashes, after normalizing to upper case.</summary>
     [GeneratedRegex("^[A-Z0-9-]+$")]
     private static partial Regex CodeFormat();
 }
