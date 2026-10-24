@@ -6,21 +6,46 @@
 
 ## Where AI provided value
 
-<!-- TODO -->
 
+- Ai provided the help with coding and implementing the backend and frontend code, including project setup at help for deployment.
+- The Ai agent was particularly useful for bouncing ideas and presenting different options when deciding architecture and design.
+- The Ai was also helpful for testing and documentation
 ## Where AI was less suitable or required correction
 
-<!-- TODO -->
+- When i first prompted the model it had no idea on architecture or design pricinples, and often over engineered models and interafaces.
+- It required constant supervision to ensure it did not miss or overlook fetures.
+- The AI has a tendency to want to overcomplicate 
 
 ## Decisions handled manually, and why
+The AI proposed and argued options; these calls were mine.
 
-<!-- TODO -->
+- Architecture: DDD as folders in one project. The AI started with separate projects. I wanted it simple, one project, modules by business area, with folder names I set. Architecture tests enforce the boundaries instead of project references.
+- Real users instead of contact info only. I rejected the AI's first minimal model and chose ASP.NET Identity users, and dropped its separate Customer entity, since a customer is a user. I wanted it to show how it would be done properly and be able to grow.
+- Cutting the model back. Of the 9 entities the AI planned, I had 6 folded into the order or dropped (e.g. bike brand as a string, one service per order). I kept the status history as the audit trail.
+
 
 ## Example: prompt / agent task that helped
 
-<!-- TODO -->
+
+### A longer autonomous task
+
+**Prompt:** "do the rest of the domains; same workflow for each, one step at the time, stop if you encounter anything you are unsure about".
+
+What the agent did:
+- Ran four red → green cycles on its own, each with its own commits: customer notes and "my orders", staff search/get/patch/delete, status changes and price override, then accounts, sessions and staff.
+- Made the choices that followed conventions we'd already agreed without stopping, and recorded them in `docs/architecture.md`, e.g. 201 vs 200 for the price override `PUT` and a `WWW-Authenticate` header on every 401 (RFC 9110).
+- Returned 400 for invalid status changes, following our "broken rule in a `POST` = 400" convention, but flagged 409 as a defensible alternative instead of deciding that on its own.
 
 ## Example: something reviewed, corrected, or rejected
+
+Too many projects. When setting up the backend, the agent created a separate `.Api` project, and when I asked for domain-driven design it split the solution into several class libraries (one per layer). For an app this size that was ceremony without benefit, so I rejected it: "no need for multiple libraries, we want simple".
+
+What I wanted instead was one project, with a folder per business area (`Orders/`, `Catalog/`, …) and layer folders inside each. 
+
+TLDR; asked for an architecture, the agent reached for the textbook version. It needed to be told the size of the problem.
+
+
+
 
 <!-- TODO -->
 
