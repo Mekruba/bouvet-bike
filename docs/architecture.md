@@ -237,7 +237,6 @@ Contract-first: request/response records live in each module's `Contracts/`, tog
 | Route | Access | Service method |
 |---|---|---|
 | `GET /api/admin/orders?search=&status=&serviceTypeId=&dueFrom=&dueTo=&sort=&page=` | staff | `IAdminOrderService.SearchAsync` |
-
 | `GET /api/admin/orders/{id}` | staff | `GetAsync` |
 | `PATCH /api/admin/orders/{id}` | staff | `PatchAsync`: details, service, due date, `/internalNotes`, `/discountCode` |
 | `DELETE /api/admin/orders/{id}` | Admin | `DeleteAsync` → 204 |
