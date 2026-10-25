@@ -142,8 +142,12 @@ public class AdminOrderQueryApiTests(ApiFactory factory) : IClassFixture<ApiFact
     public async Task Sort_DefaultsToDueDateAscending_AndCanBeReversed()
     {
         var brand = UniqueBrand();
-        var later = await Place(brand: brand, dueDate: FreshDay().AddDays(5));
-        var sooner = await Place(brand: brand, dueDate: FreshDay());
+        // FreshDay() only counts up, but other test classes take days from it in parallel, so take both dates
+        // before placing anything. The later one is placed first, so the order isn't just insertion order.
+        var soonerDate = FreshDay();
+        var laterDate = FreshDay();
+        var later = await Place(brand: brand, dueDate: laterDate);
+        var sooner = await Place(brand: brand, dueDate: soonerDate);
 
         var ascending = await _mechanic.Search($"search={brand}");
         var descending = await _mechanic.Search($"search={brand}&sort=DueDate&descending=true");
