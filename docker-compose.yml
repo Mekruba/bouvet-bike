@@ -7,6 +7,8 @@ services:
       Admin__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env (see .env.example)}
       # Trust X-Forwarded-For from nginx, so rate limiting sees the client's IP. The backend is not published.
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      # true: a new database (empty volume) gets sample orders, so the app looks used.
+      SeedSampleData: ${SEED_SAMPLE_DATA:-false}
     volumes:
       - data:/data
     restart: unless-stopped

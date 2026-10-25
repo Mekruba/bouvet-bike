@@ -7,6 +7,10 @@ setup:
     cd backend && dotnet restore
     cd frontend && npm install
 
+# Like dev, but a new database gets sample orders (an existing one is left alone; just reset-db first to start fresh)
+dev-sample:
+    SeedSampleData=true just dev
+
 # Run backend (watch) and frontend dev server together; Ctrl-C stops both
 dev:
     #!/usr/bin/env bash
