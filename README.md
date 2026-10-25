@@ -148,6 +148,7 @@ The full list, with the reasoning, is in [docs/requirements.md](docs/requirement
 - **One service per order.** Its name and price are copied onto the order, so later catalog changes don't alter it.
 - **"Before the repair has started" means status `New`.** After that, customers can't change their notes.
 - **Capacity:** default 5 per day, set per weekday by admins, with per-date exceptions (0 = closed). Cancelled orders don't count. A full date is rejected with the next available date.
+- **The due date is when the bike is ready.** A service that takes several days can't be due sooner than that; drop-off isn't tracked.
 - **Status lifecycle:** New → In progress / Waiting for customer → Completed, or Cancelled. Completed and cancelled orders are final.
 - **A refused request says why:** 400/422 for wrong input, 403 for the wrong role, 405 for an unsupported method, 409 when the order's current state forbids it.
 

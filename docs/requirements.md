@@ -85,6 +85,8 @@ Business logic (at least one):
 - Only orders that are not `Cancelled` count toward capacity.
 - When a requested date is full, the API rejects it and suggests the next available date.
 - The due date cannot be in the past; today is allowed. Staff can still edit an order whose due date has passed without changing the date.
+- **The due date is when the bike is ready.** A service that takes N whole days (e.g. a 3-day frame repair) can't be due sooner than N days from today; the API answers 400 with `earliestDueDate`, and the date picker greys out the days before it. Shorter services can be due today. Services can take up to two weeks.
+- The customer brings the bike in early enough for that; drop-off isn't tracked. Staff edits ignore the lead time, since staff know when the bike actually came in. A real shop would likely add a drop-off date, and then the daily limit would count bikes per workday rather than per due date.
 
 ### Status lifecycle
 

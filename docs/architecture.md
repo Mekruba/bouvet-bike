@@ -118,6 +118,7 @@ MaintenanceOrder ··▶ ServiceType, User?   (by ID, with foreign keys)
 | Customer notes editable only while `New`; internal notes at any status, never shown to customers | `MaintenanceOrder` |
 | Only active services can be ordered; the service's name and price are copied onto the order, and choosing the same service again keeps the original price | `MaintenanceOrder` |
 | Due date not in the past (only checked when set or changed) | `MaintenanceOrder` |
+| When placed, the due date is at least the service's whole days from today (`EarliestDueDate`); staff edits are exempt | `MaintenanceOrder` |
 | Completed and cancelled orders are read-only, except that the price can be overridden on completed orders | `MaintenanceOrder` |
 | Total = override ?? service price − discount; the discount never exceeds the price; one discount per order | `MaintenanceOrder`, `AppliedDiscount` |
 | Discount code validity window and usage limit | `DiscountCode` |
