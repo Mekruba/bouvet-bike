@@ -14,8 +14,8 @@ internal static class TestData
     public static ContactInfo Contact() =>
         new("Kari Nordmann", Email.Create("kari@example.com"), PhoneNumber.Create("912 34 567"));
 
-    public static ServiceType Service(string name = "Chain replacement", decimal price = 790) =>
-        ServiceType.Create(name, null, new Money(price), TimeSpan.FromMinutes(45));
+    public static ServiceType Service(string name = "Chain replacement", decimal price = 790, TimeSpan? duration = null) =>
+        ServiceType.Create(name, null, new Money(price), duration ?? TimeSpan.FromMinutes(45));
 
     public static MaintenanceOrder Order(TimeProvider clock, ServiceType? service = null) =>
         MaintenanceOrder.Place(Contact(), "Trek", "Domane", service ?? Service(), Today.AddDays(3), clock);

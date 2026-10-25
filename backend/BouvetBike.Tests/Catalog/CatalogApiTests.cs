@@ -98,11 +98,23 @@ public class CatalogApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(created, await _anonymous.GetAsync(response.Headers.Location).ReadAs<ServiceTypeResponse>());
     }
 
+    [Fact]
+    public async Task Create_ServiceTakingSeveralDays_IsAllowed()
+    {
+        var threeDays = 3 * 24 * 60;
+
+        var created = await _admin.PostAsJsonAsync(Url, new CreateServiceTypeRequest(UniqueName("Frame repair"), null, 2500, threeDays))
+            .ReadAs<ServiceTypeResponse>(HttpStatusCode.Created);
+
+        Assert.Equal(threeDays, created.EstimatedMinutes);
+    }
+
     [Theory]
     [InlineData("""{ "price": 100, "estimatedMinutes": 30 }""", "name")]
     [InlineData("""{ "name": "X", "price": -1, "estimatedMinutes": 30 }""", "price")]
     [InlineData("""{ "name": "X", "estimatedMinutes": 30 }""", "price")]
     [InlineData("""{ "name": "X", "price": 100, "estimatedMinutes": 0 }""", "estimatedMinutes")]
+    [InlineData("""{ "name": "X", "price": 100, "estimatedMinutes": 20161 }""", "estimatedMinutes")] // over two weeks
     public async Task Create_WithInvalidFields_Is400_WithFieldErrors(string body, string field)
     {
         var response = await _admin.PostAsync(Url, new StringContent(body, System.Text.Encoding.UTF8, "application/json"));

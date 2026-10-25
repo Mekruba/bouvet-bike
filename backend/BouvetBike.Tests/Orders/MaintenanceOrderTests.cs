@@ -46,6 +46,35 @@ public class MaintenanceOrderTests
     public void Place_WithDueDateToday_IsAllowed() =>
         MaintenanceOrder.Place(Contact(), "Trek", null, Service(), Today, _clock);
 
+    // A service that takes N whole days can't be ready sooner than N days from today.
+
+    [Fact]
+    public void Place_ServiceTakingADay_CannotBeDueToday_AndSaysTheEarliestDate()
+    {
+        var service = Service("Full overhaul", duration: TimeSpan.FromHours(24));
+
+        var error = Assert.Throws<DomainException>(() => MaintenanceOrder.Place(Contact(), "Trek", null, service, Today, _clock));
+
+        Assert.Equal(Today.AddDays(1), error.Details["earliestDueDate"]);
+    }
+
+    [Fact]
+    public void Place_ServiceTakingADay_CanBeDueTomorrow() =>
+        MaintenanceOrder.Place(Contact(), "Trek", null, Service("Full overhaul", duration: TimeSpan.FromHours(24)), Today.AddDays(1), _clock);
+
+    [Fact]
+    public void Place_ServiceTakingThreeDays_IsDueInThreeDaysAtTheEarliest()
+    {
+        var service = Service("Frame repair", duration: TimeSpan.FromDays(3));
+
+        Assert.Throws<DomainException>(() => MaintenanceOrder.Place(Contact(), "Trek", null, service, Today.AddDays(2), _clock));
+        MaintenanceOrder.Place(Contact(), "Trek", null, service, Today.AddDays(3), _clock);
+    }
+
+    [Fact]
+    public void Place_ServiceShorterThanADay_CanBeDueToday() =>
+        MaintenanceOrder.Place(Contact(), "Trek", null, Service("Quick fix", duration: TimeSpan.FromHours(23)), Today, _clock);
+
     [Theory]
     [InlineData(OrderStatus.InProgress)]
     [InlineData(OrderStatus.WaitingForCustomer)]

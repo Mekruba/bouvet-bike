@@ -1,4 +1,5 @@
 using System.Net;
+using BouvetBike.Catalog.Contracts;
 using BouvetBike.Discounts.Domain;
 using BouvetBike.Orders.Contracts;
 using BouvetBike.Orders.Domain;
@@ -132,6 +133,21 @@ public class AdminOrderUpdateApiTests(ApiFactory factory) : IClassFixture<ApiFac
     public async Task Patch_DueDateInThePast_Is422() =>
         await Patch(await PlaceOrder(), $$"""[{ "op": "replace", "path": "/dueDate", "value": "{{Today.AddDays(-1):yyyy-MM-dd}}" }]""")
             .AssertProblem(HttpStatusCode.UnprocessableEntity);
+
+    [Fact]
+    public async Task Patch_DueDate_ForServiceTakingDays_IgnoresTheLeadTime()
+    {
+        // Staff know when the bike actually came in (it may have been in the shop for days), so the
+        // "N days from today" rule for customers doesn't apply to them.
+        var frameRepair = await _admin.PostJsonAsync("/api/service-types", new CreateServiceTypeRequest("Frame repair (staff)", null, 2500, 3 * 24 * 60))
+            .ReadAs<ServiceTypeResponse>(HttpStatusCode.Created);
+        var order = await _anonymous.PlaceOrder(NewOrder(frameRepair.Id, Today.AddDays(95)));
+
+        var patched = await Patch(await _mechanic.AdminId(order), $$"""[{ "op": "replace", "path": "/dueDate", "value": "{{Today:yyyy-MM-dd}}" }]""")
+            .ReadAs<AdminOrderResponse>();
+
+        Assert.Equal(Today, patched.DueDate);
+    }
 
     // ---- PATCH discount code ----
 

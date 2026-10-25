@@ -144,6 +144,19 @@ public class PlaceOrderApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Place_ServiceTakingDays_TooSoon_Is400_WithEarliestDueDate()
+    {
+        var admin = factory.CreateClient(Roles.Admin);
+        var frameRepair = await admin.PostJsonAsync("/api/service-types", new CreateServiceTypeRequest("Frame repair (3 days)", null, 2500, 3 * 24 * 60))
+            .ReadAs<ServiceTypeResponse>(HttpStatusCode.Created);
+
+        var problem = await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(frameRepair.Id, Today.AddDays(1))).AssertProblem(HttpStatusCode.BadRequest);
+
+        Assert.Equal($"{Today.AddDays(3):yyyy-MM-dd}", problem.GetProperty("earliestDueDate").GetString());
+        await _anonymous.PostJsonAsync(OrdersUrl, NewOrder(frameRepair.Id, Today.AddDays(3))).AssertStatus(HttpStatusCode.Created);
+    }
+
+    [Fact]
     public async Task Place_OnFullDate_Is400_WithNextAvailableDate()
     {
         var serviceId = await _anonymous.ServiceTypeId();
