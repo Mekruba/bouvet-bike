@@ -654,7 +654,8 @@
   cursor: not-allowed;
 }
 
-.capacity__day.is-full {
+.capacity__day.is-full,
+.capacity__day.is-too-soon {
   background: var(--gray-50);
   color: var(--color-text-muted);
 }

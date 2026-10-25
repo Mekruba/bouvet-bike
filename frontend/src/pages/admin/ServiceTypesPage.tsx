@@ -163,7 +163,14 @@ function ServiceDialog({ open, service, onClose, onSaved }: { open: boolean; ser
         <TextAreaField label="Description" optional rows={2} {...form.bind('description')} />
         <div className="grid-2">
           <TextField label="Price (NOK)" type="number" min={0} required {...form.bind('price')} />
-          <TextField label="Estimated minutes" type="number" min={1} required {...form.bind('estimatedMinutes')} />
+          <TextField
+            label="Estimated minutes"
+            type="number"
+            min={1}
+            required
+            hint="A day is 1440 minutes; up to two weeks. Orders for a service taking whole days are due that many days ahead."
+            {...form.bind('estimatedMinutes')}
+          />
         </div>
         {service && <p className="small muted">Price changes apply to new orders. Existing orders keep the price they were booked at.</p>}
         {form.formError && <Alert tone="danger">{form.formError}</Alert>}

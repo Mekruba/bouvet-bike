@@ -60,6 +60,11 @@ export function formatDiscount(type: DiscountType, value: number, currency = 'NO
 }
 
 export function formatMinutes(minutes: number): string {
+  if (minutes >= 24 * 60) {
+    const days = Math.floor(minutes / (24 * 60))
+    const hours = Math.floor((minutes % (24 * 60)) / 60)
+    return `${days} ${days === 1 ? 'day' : 'days'}${hours ? ` ${hours} h` : ''}`
+  }
   if (minutes < 60) return `${minutes} min`
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60

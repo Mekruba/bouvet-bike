@@ -140,6 +140,15 @@ export function BookingPage() {
   const selectedService = services.data?.find((s) => s.id === values.serviceTypeId)
   const canGoBack = windowStart > todayIso()
 
+  // A service taking N whole days can't be due sooner than N days from today; the API enforces the same rule.
+  const leadDays = selectedService ? Math.floor(selectedService.estimatedMinutes / (24 * 60)) : 0
+  const earliestDueDate = addDays(todayIso(), leadDays)
+
+  // Switching to a longer service can make the chosen date too soon.
+  useEffect(() => {
+    if (values.dueDate && values.dueDate < earliestDueDate) set('dueDate', '')
+  }, [earliestDueDate, values.dueDate, set])
+
   return (
     <>
       <section className="hero">
@@ -194,9 +203,15 @@ export function BookingPage() {
           >
             <div className="stack">
               {capacity.data ? (
-                <CapacityStrip days={capacity.data} selected={values.dueDate} onSelect={selectDate} />
+                <CapacityStrip days={capacity.data} selected={values.dueDate} onSelect={selectDate} earliest={earliestDueDate} />
               ) : (
                 <AsyncContent {...capacity}>{() => null}</AsyncContent>
+              )}
+              {selectedService && leadDays > 0 && (
+                <p className="muted">
+                  {selectedService.name} takes {leadDays === 1 ? 'a day' : `${leadDays} days`}, so the earliest due date is{' '}
+                  {formatDate(earliestDueDate)}.
+                </p>
               )}
               {form.fieldErrors.dueDate && <p className="field__error">Choose a due date.</p>}
               {nextAvailable && (
