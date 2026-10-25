@@ -59,7 +59,10 @@ public sealed class MaintenanceOrder : AggregateRoot
     /// The caller checks the date's capacity, which spans other orders.
     /// </summary>
     /// <param name="customerId">The logged-in customer placing it; null for a guest.</param>
-    /// <exception cref="DomainException">Missing or too long fields, a retired service, or a due date in the past.</exception>
+    /// <exception cref="DomainException">
+    /// Missing or too long fields, a retired service, a due date in the past, or one sooner than the service
+    /// can be done (see <see cref="EarliestDueDate"/>; the details carry <c>earliestDueDate</c>).
+    /// </exception>
     public static MaintenanceOrder Place(
         ContactInfo contact,
         string bikeBrand,
@@ -86,8 +89,28 @@ public sealed class MaintenanceOrder : AggregateRoot
 
         order.SetService(service);
         order.SetDueDate(dueDate, clock);
+
+        // Only when placing: staff edits later may set an earlier date, since they know when the bike came in.
+        var earliest = EarliestDueDate(service, clock);
+        if (dueDate < earliest)
+        {
+            var days = (int)service.EstimatedDuration.TotalDays;
+            throw new DomainException(
+                $"{service.Name} takes {(days == 1 ? "a day" : $"{days} days")}, so the earliest due date is {earliest:yyyy-MM-dd}.")
+            {
+                Details = new Dictionary<string, object?> { ["earliestDueDate"] = earliest },
+            };
+        }
+
         return order;
     }
+
+    /// <summary>
+    /// The first day an order for the service can be due: today plus the whole days the service takes.
+    /// A service shorter than a day can be due today; one taking 24 hours, tomorrow at the earliest.
+    /// </summary>
+    public static DateOnly EarliestDueDate(ServiceType service, TimeProvider clock) =>
+        DateOnly.FromDateTime(clock.GetLocalNow().Date).AddDays((int)service.EstimatedDuration.TotalDays);
 
     /// <summary>Staff edit of the order details. Not allowed once the order is completed or cancelled.</summary>
     /// <exception cref="StateConflictException">The order is completed or cancelled.</exception>

@@ -12,7 +12,8 @@ namespace BouvetBike.Catalog.Contracts;
 public sealed class ServiceTypePatch
 {
     public const int MaxPrice = 1_000_000;
-    public const int MaxMinutes = 24 * 60;
+    /// <summary>Two weeks: services can take several days (orders for them are due that many days ahead).</summary>
+    public const int MaxMinutes = 14 * 24 * 60;
 
     [Required, StringLength(ServiceType.NameMaxLength)]
     public string Name { get; set; } = "";
