@@ -52,6 +52,19 @@ The Vite dev server proxies `/api/*` to the backend on port 5080.
 
 In Development (`just dev`), two discount codes are seeded for trying the price quote and discount features: `WELCOME10` (10 %) and `SPRING100` (100 NOK off, 50 uses). Other environments, including the tests, get no demo data.
 
+### Sample data
+
+To make the app look like it's in use, start it with `SeedSampleData=true`:
+
+```sh
+just reset-db      # only if the database already exists
+just dev-sample    # = SeedSampleData=true just dev
+```
+
+A **new** database then gets about 30 orders from the last three weeks and the next two: every status, history by named mechanics, customer and internal notes, discount codes used, a price override with a reason, a full day, a closed day and a day with extra capacity. Some orders belong to the customer account `kari.nordmann@example.com`; look them up under **Find my order** with that email. An existing database is never touched; the log says so instead. The sample accounts have no password, so they can't log in. Log in with your own admin (see [Admin login](#admin-login)).
+
+The flag also works as a command-line argument (`dotnet run --project BouvetBike -- --SeedSampleData=true`) and in Docker (`SEED_SAMPLE_DATA=true` in `.env`, with an empty volume).
+
 ### Admin login
 
 Staff pages need a login. The first admin is created on startup from configuration, which is kept in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) rather than in the repo:
@@ -102,6 +115,7 @@ The backend reads configuration from `appsettings.json`, user secrets (Developme
 | `Capacity__SearchDays` | `60` | How far ahead to look for the next open date when a date is full |
 | `RateLimiting__OrderLookups__PermitsPerMinute` | `30` | Order lookups (by reference, email or phone) allowed per IP address per minute |
 | `DataProtection__KeysPath` | unset (keys in the user profile); `/data/keys` in Docker | Where the keys that sign login cookies and confirmation links are kept. Set it when the app runs where the user profile doesn't survive, e.g. a container |
+| `SeedSampleData` | `false` (`true` with `just dev-sample`) | Fill a newly created database with sample orders. An existing database is left alone. See [Sample data](#sample-data) |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | unset; `true` in Docker | Trust `X-Forwarded-For` from a reverse proxy, so the rate limit sees client IPs. Only safe when nothing but the proxy can reach the backend |
 
 **Docker Compose** (`.env`, see `.env.example`)
@@ -111,6 +125,7 @@ The backend reads configuration from `appsettings.json`, user secrets (Developme
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | required | Passed to the backend as `Admin__Email`, `Admin__Password` |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Passed to the backend |
 | `PORT` | `8080` | Port on the host where the app is published |
+| `SEED_SAMPLE_DATA` | `false` | Passed to the backend as `SeedSampleData`; takes effect on the first start (empty volume) |
 
 **Frontend dev server**
 
