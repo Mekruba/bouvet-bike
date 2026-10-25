@@ -54,13 +54,26 @@ if (app.Environment.IsDevelopment())
 // After changing the model, delete bouvetbike.db (`just reset-db`) or switch to `dotnet ef migrations`.
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+    var created = scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
     await IdentitySeeder.SeedAsync(scope.ServiceProvider);
     await CapacitySeeder.SeedAsync(scope.ServiceProvider);
 
     if (app.Environment.IsDevelopment())
     {
         await DemoDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
+    }
+
+    // SeedSampleData=true (env, command line or appsettings) makes a new database look used. Never an existing one.
+    if (app.Configuration.GetValue<bool>("SeedSampleData"))
+    {
+        if (created)
+        {
+            await SampleDataSeeder.SeedAsync(scope.ServiceProvider);
+        }
+        else
+        {
+            app.Logger.LogInformation("SeedSampleData is set, but the database already exists, so no sample data was added. Delete it (just reset-db) to start fresh.");
+        }
     }
 }
 
